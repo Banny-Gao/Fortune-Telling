@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
-module.exports = {
-  reactStrictMode: true,
-  transpilePackages: ["@repo/ui"],
-};
+const nextConfig = {
+  reactStrictMode: false,
+  transpilePackages: ['@repo/ui', '@repo/fortune-utils'],
+}
+
+module.exports = nextConfig
