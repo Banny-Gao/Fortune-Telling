@@ -6,7 +6,15 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
-    "lint": {},
+    "lint": {
+      "inputs": [
+        "src/**/*.{js,jsx,ts,tsx}",
+        "app/**/*.{js,jsx,ts,tsx}",
+        "pages/**/*.{js,jsx,ts,tsx}",
+        "*.config.{js,ts}"
+      ],
+      "outputs": []
+    },
     "type-check": {},
     "dev": {
       "cache": false,
@@ -14,6 +22,18 @@
     },
     "clean": {
       "cache": false
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "test:coverage": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
     }
   }
 }
