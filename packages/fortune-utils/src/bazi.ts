@@ -1,9 +1,8 @@
 import { wuxings, yinYangs } from './wuxing'
-import { directions } from './direction'
 import { SOLAR_TERM, seasons, getSolarTerms, getSolarAndLunarDate } from './date'
-import { animals } from './consistants'
+import { animals, directions } from './constant'
 
-import type { Gan, Zhi } from './types'
+import type { BasicField } from './types'
 import type { LunarDate } from './date'
 
 /** 十天干 */
@@ -21,6 +20,35 @@ export const TWELVE_LONG_LIFE_NAME = ['长生', '沐浴', '冠带', '临官', '�
 
 /** 节气对应的月干偏移 */
 export const SOLAR_TERM_OFFSET: Record<string, number> = Object.fromEntries(SOLAR_TERM.map((term, index) => [term, Math.floor(index / 2)]))
+
+export type Gan = BasicField<{
+  /** 天干
+   * 阴阳交替
+   * 甲乙东方木，丙丁南方火，戊己中央土，庚辛西方金，壬癸北方水
+   */
+  index: number // 索引
+  name: string // 名称
+  /*
+   * 五虎遁: 年上起月，表示正月天干
+   * 甲己之年丙作首，乙庚之岁戊为头，丙辛之岁寻庚起，丁壬壬位顺行流，戊癸何方发，壬子是真途
+   */
+  wuhudun: {
+    sourceName: (typeof GAN_NAME)[number] // 当前天干
+    sourceIndex: number // 当前天干索引
+    targetName: (typeof GAN_NAME)[number] // 正月天干
+    targetIndex: number // 正月天干索引
+  }
+  /**
+   * 五鼠遁: 日上起时，表示子时天干
+   * 甲己还加甲，乙庚丙作初，丙辛从戊起，丁壬庚子居，戊癸何方发，壬子是真途
+   */
+  wushudun: {
+    sourceName: (typeof GAN_NAME)[number] // 当前天干
+    sourceIndex: number // 当前天干索引
+    targetName: (typeof GAN_NAME)[number] // 子时天干
+    targetIndex: number // 子时天干索引
+  }
+}>
 
 export const gans: Gan[] = GAN_NAME.map((name, index) => {
   return {
@@ -43,6 +71,11 @@ export const gans: Gan[] = GAN_NAME.map((name, index) => {
     },
   }
 })
+
+export type Zhi = BasicField<{
+  index: number // 索引
+  name: string // 名称
+}>
 
 /** 获取地支的五行 */
 export const getZhiWuxing = (name: Zhi['name'], index: Zhi['index']) => {
@@ -90,21 +123,21 @@ export const getYearZhi = (year: number): Zhi => {
   return zhis[index]
 }
 
+/** 获取某年某月某日节气的月干偏移 */
+export const getMonthGanOffset = (lunarDate: LunarDate): number => {
+  const [currentSolarTerm] = getSolarTerms(lunarDate)
+  const solarTermOffset = SOLAR_TERM_OFFSET[currentSolarTerm.name]
+  return solarTermOffset ?? lunarDate.month - 1
+}
+
 /** 获取农历某月某天所在的月的天干 */
 export const getMonthGan = (lunarDate: LunarDate): Gan => {
   const yearGan = getYearGan(lunarDate.year)
 
   // 正月天干的序号
   const firstMonthGanIndex = yearGan.wuhudun.targetIndex
-
-  // 获取当前节气
-  const [currentSolarTerm] = getSolarTerms(lunarDate)
-
-  // 如果有节气，使用节气的月干偏移
-  let monthOffset = lunarDate.month - 1
-  if (currentSolarTerm && SOLAR_TERM_OFFSET[currentSolarTerm.name] !== undefined) {
-    monthOffset = SOLAR_TERM_OFFSET[currentSolarTerm.name]
-  }
+  // 月干偏移
+  const monthOffset = getMonthGanOffset(lunarDate)
 
   const index = (firstMonthGanIndex + monthOffset) % 10
   return gans[index]
@@ -112,14 +145,8 @@ export const getMonthGan = (lunarDate: LunarDate): Gan => {
 
 /** 获取农历某月某天所在的月的地支 */
 export const getMonthZhi = (lunarDate: LunarDate): Zhi => {
-  // 获取当前节气
-  const [currentSolarTerm] = getSolarTerms(lunarDate)
-
-  // 如果有节气，使用节气的月干偏移来确定地支
-  let monthOffset = lunarDate.month - 1
-  if (currentSolarTerm && SOLAR_TERM_OFFSET[currentSolarTerm.name] !== undefined) {
-    monthOffset = SOLAR_TERM_OFFSET[currentSolarTerm.name]
-  }
+  // 月干偏移
+  const monthOffset = getMonthGanOffset(lunarDate)
 
   // 正月对应寅月，需要加上2个偏移
   const index = (monthOffset + 2) % 12

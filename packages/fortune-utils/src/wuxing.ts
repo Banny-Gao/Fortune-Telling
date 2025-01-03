@@ -1,17 +1,9 @@
-import { YinYang, WuXing } from './types'
+import { IndexField, OptionField } from './types'
 
-/** 阴阳 */
-export const YIN_YANG_NAME: YinYang['name'][] = ['阴', '阳']
-
-export const yinYangs: YinYang[] = YIN_YANG_NAME.map((name, index) => ({
-  name,
-  value: index === 0 ? -1 : 1,
-}))
-
+export const YIN_YANG_NAME = ['阴', '阳']
 export const WX_NAME = ['木', '火', '土', '金', '水']
-
-/** 五行数字 */
 export const WX_NUMBERS = [
+  /** 五行数字 */
   [3, 8], // 木
   [2, 7], // 火
   [5, 10], // 土
@@ -19,7 +11,17 @@ export const WX_NUMBERS = [
   [1, 6], // 水
 ]
 
+/** 阴阳 */
+export type YinYang = OptionField<{}>
+export const yinYangs: YinYang[] = YIN_YANG_NAME.map((name, index) => ({
+  name,
+  value: index === 0 ? -1 : 1,
+}))
+
 /** 五行 */
+export type WuXing = IndexField<{
+  numbers: number[]
+}>
 export const wuxings: WuXing[] = WX_NAME.map((name, index) => ({
   name,
   index,

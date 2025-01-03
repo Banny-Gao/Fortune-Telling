@@ -1,39 +1,13 @@
 import dayjs from 'dayjs'
 import { LUNAR_INFO } from './data/lunarYears'
-import { Season } from './types'
 import { getCurrentLoc, getLocation } from './utils/map'
 
+import type { IndexField } from './types'
+
 /** 四季 */
-export const SEASON_NAME: Season['name'][] = ['春', '夏', '秋', '冬']
+export const SEASON_NAME = ['春', '夏', '秋', '冬']
 /** 农历月份 */
 export const LUNAR_MONTH = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊']
-/** 二十四节气 */
-export const SOLAR_TERM = [
-  '立春',
-  '雨水',
-  '惊蛰',
-  '春分',
-  '清明',
-  '谷雨',
-  '立夏',
-  '小满',
-  '芒种',
-  '夏至',
-  '小暑',
-  '大暑',
-  '立秋',
-  '处暑',
-  '白露',
-  '秋分',
-  '寒露',
-  '霜降',
-  '立冬',
-  '小雪',
-  '大雪',
-  '冬至',
-  '小寒',
-  '大寒',
-]
 /** 农历日期 */
 export const LUNAR_DAY = [
   '初一',
@@ -67,24 +41,46 @@ export const LUNAR_DAY = [
   '廿九',
   '三十',
 ]
+/** 二十四节气 */
+export const SOLAR_TERM = [
+  '立春',
+  '雨水',
+  '惊蛰',
+  '春分',
+  '清明',
+  '谷雨',
+  '立夏',
+  '小满',
+  '芒种',
+  '夏至',
+  '小暑',
+  '大暑',
+  '立秋',
+  '处暑',
+  '白露',
+  '秋分',
+  '寒露',
+  '霜降',
+  '立冬',
+  '小雪',
+  '大雪',
+  '冬至',
+  '小寒',
+  '大寒',
+]
 
+/** 四季 */
+export type Season = IndexField<{}>
 export const seasons: Season[] = SEASON_NAME.map((name, index) => ({
-  name,
   index,
+  name,
 }))
 
 /** 获取闰月月份 */
-export const getLeapMonth = (lunarInfo: number): number => {
-  return lunarInfo & 0xf
-}
+export const getLeapMonth = (lunarInfo: number): number => lunarInfo & 0xf
 
 /** 获取闰月天数 */
-export const getLeapDays = (lunarInfo: number): number => {
-  if (getLeapMonth(lunarInfo)) {
-    return lunarInfo & 0x10000 ? 30 : 29
-  }
-  return 0
-}
+export const getLeapDays = (lunarInfo: number): number => (getLeapMonth(lunarInfo) ? (lunarInfo & 0x10000 ? 30 : 29) : 0)
 
 /** 计算农历年天数 */
 export const getLunarYearDays = (lunarInfo: number): number => {
@@ -94,21 +90,29 @@ export const getLunarYearDays = (lunarInfo: number): number => {
     total += lunarInfo & monthInfo ? 30 : 29
     monthInfo = monthInfo >> 1
   }
+
   return total + getLeapDays(lunarInfo)
 }
 
 /** 获取农历某月的天数 */
-export const getLunarMonthDays = (lunarInfo: number, month: number): number => {
-  return lunarInfo & (0x10000 >> month) ? 30 : 29
-}
+export const getLunarMonthDays = (lunarInfo: number, month: number): number => (lunarInfo & (0x10000 >> month) ? 30 : 29)
 
-/**
- * 计算时差方程修正值（分钟）
- * 时差方程考虑了地球轨道偏心率和地轴倾斜的影响
- * @param date 日期
- * @returns 时差修正（分钟）
- */
-const getEquationOfTime = (date: Date): number => {
+/** 真太阳时对象接口 */
+type BaseDate<T> = T & {
+  year: number
+  month: number
+  day: number
+  hour: number
+  minute: number
+  second: number
+  date: Date
+}
+export type TrueSolarTimeResult = BaseDate<{
+  format: (pattern?: string) => string
+}>
+
+/** 计算时差方程修正值（分钟） */
+export const getEquationOfTime = (date: Date): number => {
   // 计算当年的第几天（1月1日为第0天）
   const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24))
 
@@ -118,27 +122,7 @@ const getEquationOfTime = (date: Date): number => {
   return 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B)
 }
 
-/**
- * 真太阳时对象接口
- */
-export interface TrueSolarTimeResult {
-  year: number
-  month: number
-  day: number
-  hour: number
-  minute: number
-  second: number
-  format: (pattern?: string) => string
-  solarDate: Date
-}
-
-/**
- * 计算真太阳时
- * 真太阳时 = 平太阳时 + 经度修正 + 时差方程修正
- * @param date 当前日期时间（北京时间）
- * @param longitudeOrAddress 地理经度（度数）或地点关键词
- * @returns 真太阳时对象
- */
+/** 计算真太阳时 */
 export const getTrueSolarTime = async (date: Date, longitudeOrAddress?: number | string): Promise<TrueSolarTimeResult> => {
   let longitude: number
   if (longitudeOrAddress === undefined) {
@@ -221,29 +205,18 @@ export const getTrueSolarTime = async (date: Date, longitudeOrAddress?: number |
     minute: minutes,
     second: seconds,
     format,
-    solarDate: newDate,
+    date: newDate,
   }
 }
 
-/**
- * 农历日期接口
- */
-export interface LunarDate {
-  year: number // 农历年
-  month: number // 农历月
-  day: number // 农历日
-  hour: number // 农历时
-  minute: number // 农历分
-  second: number // 农历秒
+/** 农历日期接口 */
+export type LunarDate = BaseDate<{
   isLeap: boolean // 是否闰月
   solarDate: Date // 公历日期
-}
+  text: string // 农历日期文本
+}>
 
-/**
- * 将公历日期转换为农历日期
- * @param date 公历日期
- * @returns 农历日期
- */
+/** 将公历日期转换为农历日期 */
 export const solarToLunar = (date: Date): LunarDate => {
   const year = date.getFullYear()
   const month = date.getMonth() + 1
@@ -293,6 +266,9 @@ export const solarToLunar = (date: Date): LunarDate => {
   const minute = date.getMinutes()
   const second = date.getSeconds()
 
+  // 农历日期文本 LUNAR_MONTH 是农历月份，LUNAR_DAY 是农历日期
+  const text = `${lunarYear}年 ${LUNAR_MONTH[lunarMonth - 1]}月 ${LUNAR_DAY[lunarDay - 1]}`
+
   return {
     year: lunarYear,
     month: lunarMonth,
@@ -302,27 +278,21 @@ export const solarToLunar = (date: Date): LunarDate => {
     second,
     isLeap,
     solarDate: date,
+    date: new Date(lunarYear, lunarMonth - 1, lunarDay, hour, minute, second),
+    text,
   }
 }
 
-/**
- * 将真太阳时转换为农历日期
- * @param date 公历日期
- * @param longitudeOrAddress 经度或地址
- */
+/** 根据公历日期地点获取农历时间 */
 export const getSolarAndLunarDate = async (date: Date, longitudeOrAddress?: number | string): Promise<LunarDate> => {
-  // 1. 获取真太阳时
+  //  获取真太阳时
   const solarTime = await getTrueSolarTime(date, longitudeOrAddress)
 
-  // 3. 转换为农历
-  return solarToLunar(solarTime.solarDate)
+  // 转换为农历
+  return solarToLunar(solarTime.date)
 }
 
-/**
- * 计算黄经度数（角度）
- * @param jd 儒略日
- * @returns 太阳黄经度数
- */
+/** 计算黄经度数（角度） */
 export const getSolarLongitude = (jd: number): number => {
   // TD = TT - UT1，这里使用近似值
   const td = (jd - 2451545.0) / 36525
@@ -344,9 +314,7 @@ export const getSolarLongitude = (jd: number): number => {
   return L % 360
 }
 
-/**
- * 将日期转换为儒略日
- */
+/** 将日期转换为儒略日 */
 export const getJulianDay = (date: Date): number => {
   const y = date.getFullYear()
   const m = date.getMonth() + 1
@@ -369,25 +337,7 @@ export const getJulianDay = (date: Date): number => {
   return jd
 }
 
-/**
- * 节气接口
- */
-export interface SolarTerm {
-  // 节气名称
-  name: (typeof SOLAR_TERM)[number]
-  // 节气日期农历日期
-  lunarDate: LunarDate
-  // 节气日期公历日期
-  solarDate: Date
-}
-
-/**
- * 查找指定黄经度数对应的儒略日
- * @param targetLongitude 目标黄经度数
- * @param startJD 开始儒略日
- * @param endJD 结束儒略日
- * @returns 对应的儒略日
- */
+/** 查找指定黄经度数对应的儒略日 */
 export const findSolarTermJD = (targetLongitude: number, startJD: number, endJD: number): number => {
   const precision = 0.0001 // 精度：约8秒
   let low = startJD
@@ -411,9 +361,7 @@ export const findSolarTermJD = (targetLongitude: number, startJD: number, endJD:
   return (low + high) / 2
 }
 
-/**
- * 儒略日转公历日期
- */
+/** 儒略日转公历日期 */
 export const fromJulianDay = (jd: number): Date => {
   const z = Math.floor(jd + 0.5)
   const a = Math.floor((z - 1867216.25) / 36524.25)
@@ -435,11 +383,15 @@ export const fromJulianDay = (jd: number): Date => {
   return new Date(year, month - 1, day, hours, minutes, seconds)
 }
 
-/**
- * 获取农历某月某天当月的节气
- * @param date 农历日期
- * @returns 节气
- */
+/** 节气接口 */
+export interface SolarTerm {
+  // 节气名称
+  name: string
+  // 节气日期农历日期
+  lunarDate: LunarDate
+}
+
+/** 获取农历某月某天当月的节气 */
 export const getSolarTerms = (date: LunarDate): [SolarTerm, SolarTerm] => {
   const jd = getJulianDay(date.solarDate)
   const longitude = getSolarLongitude(jd)
@@ -462,16 +414,14 @@ export const getSolarTerms = (date: LunarDate): [SolarTerm, SolarTerm] => {
   const nextTermDate = fromJulianDay(nextTermJD)
 
   // 创建节气对象
-  const term1 = {
+  const term1: SolarTerm = {
     name: SOLAR_TERM[currentTermIndex],
     lunarDate: solarToLunar(currentTermDate),
-    solarDate: currentTermDate,
   }
 
-  const term2 = {
+  const term2: SolarTerm = {
     name: SOLAR_TERM[nextTermIndex],
     lunarDate: solarToLunar(nextTermDate),
-    solarDate: nextTermDate,
   }
 
   return [term1, term2]
