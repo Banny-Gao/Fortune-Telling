@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { LUNAR_INFO } from './data/lunarYears'
+import { LUNAR_INFO } from './data/lunar-years'
 import { getCurrentLoc, getLocation } from './utils/map'
 
 import type { IndexField } from './types'
@@ -70,7 +70,7 @@ export const SOLAR_TERM = [
 ]
 
 /** 四季 */
-export type Season = IndexField<{}>
+export type Season = IndexField
 export const seasons: Season[] = SEASON_NAME.map((name, index) => ({
   index,
   name,
@@ -105,9 +105,10 @@ type BaseDate<T> = T & {
   hour: number
   minute: number
   second: number
-  date: Date
+  date?: Date
 }
 export type TrueSolarTimeResult = BaseDate<{
+  date: Date
   format: (pattern?: string) => string
 }>
 
@@ -124,78 +125,55 @@ export const getEquationOfTime = (date: Date): number => {
 
 /** 计算真太阳时 */
 export const getTrueSolarTime = async (date: Date, longitudeOrAddress?: number | string): Promise<TrueSolarTimeResult> => {
-  let longitude: number
-  if (longitudeOrAddress === undefined) {
-    const { lng } = await getCurrentLoc()
-    longitude = lng
-  } else {
-    longitude = typeof longitudeOrAddress === 'string' ? (await getLocation(longitudeOrAddress)).lng : longitudeOrAddress
-  }
+  // 1. 获取经度
+  const longitude = await (async () => {
+    if (!longitudeOrAddress) return (await getCurrentLoc()).lng
+    return typeof longitudeOrAddress === 'string' ? (await getLocation(longitudeOrAddress)).lng : longitudeOrAddress
+  })()
 
-  // 北京标准时区的中央经线
+  // 2. 计算修正秒数
   const standardMeridian = 120
-  // 经度修正：每偏离中央经线1度对应4分钟时差（转换为秒）
-  const longitudeCorrection = (longitude - standardMeridian) * 4 * 60
+  const totalSeconds = date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds()
+  let correctedSeconds =
+    totalSeconds +
+    (longitude - standardMeridian) * 240 + // 4 * 60 = 240
+    getEquationOfTime(date) * 60
 
-  // 将当前时间转换为秒计数
-  const totalSeconds = date.getHours() * 60 * 60 + date.getMinutes() * 60 + date.getSeconds()
-  // 应用经度修正和时差方程修正（时差方程转换为秒）
-  const equationOfTime = getEquationOfTime(date) * 60
-  const correctedSeconds = totalSeconds + longitudeCorrection + equationOfTime
-
-  // 初始化日期变量
+  // 3. 处理日期计算
   let years = date.getFullYear()
   let months = date.getMonth() + 1
   let days = date.getDate()
 
-  // 将秒转换为时分秒，处理负数情况
-  let remainingSeconds = correctedSeconds
-  if (remainingSeconds < 0) {
-    remainingSeconds += 24 * 60 * 60 // 加一天的秒数
-    days -= 1
+  // 处理跨日
+  if (correctedSeconds < 0) {
+    correctedSeconds += 86400 // 24 * 3600
+    days--
     if (days === 0) {
-      months -= 1
+      months--
       if (months === 0) {
         months = 12
-        years -= 1
+        years--
       }
       days = new Date(years, months, 0).getDate()
     }
-  }
-
-  let hours = Math.floor(remainingSeconds / 3600)
-  let minutes = Math.floor((remainingSeconds % 3600) / 60)
-  let seconds = Math.floor(remainingSeconds % 60)
-
-  // 处理时间跨越日期边界的情况
-  if (hours >= 24) {
-    hours -= 24
-    days += 1
-    // 检查月末
-    const lastDayOfMonth = new Date(years, months, 0).getDate()
-    if (days > lastDayOfMonth) {
+  } else if (correctedSeconds >= 86400) {
+    correctedSeconds -= 86400
+    days++
+    if (days > new Date(years, months, 0).getDate()) {
       days = 1
-      months += 1
+      months++
       if (months > 12) {
         months = 1
-        years += 1
+        years++
       }
-    }
-  } else if (hours < 0) {
-    hours += 24
-    days -= 1
-    if (days === 0) {
-      months -= 1
-      if (months === 0) {
-        months = 12
-        years -= 1
-      }
-      days = new Date(years, months, 0).getDate()
     }
   }
 
+  // 4. 计算时分秒
+  const [hours, minutes, seconds] = [Math.floor(correctedSeconds / 3600), Math.floor((correctedSeconds % 3600) / 60), Math.floor(correctedSeconds % 60)]
+
   const newDate = new Date(years, months - 1, days, hours, minutes, seconds)
-  const format = (pattern?: string) => dayjs(newDate).format(pattern || 'YYYY-MM-DD HH:mm')
+  const format = (pattern?: string): string => dayjs(newDate).format(pattern || 'YYYY-MM-DD HH:mm')
 
   return {
     year: years,
@@ -212,18 +190,15 @@ export const getTrueSolarTime = async (date: Date, longitudeOrAddress?: number |
 /** 农历日期接口 */
 export type LunarDate = BaseDate<{
   isLeap: boolean // 是否闰月
-  solarDate: Date // 公历日期
+  solarDate: Date // 真太阳时日期
   text: string // 农历日期文本
+  monthIndex: number // 当月在本年索引
+  dateIndex: number // 当天在本月索引
 }>
 
-/** 将公历日期转换为农历日期 */
+/** 将真太阳时转换为农历日期 */
 export const solarToLunar = (date: Date): LunarDate => {
-  const year = date.getFullYear()
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-
-  // 计算距离1900年1月31日的天数
-  let offset = Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(1900, 0, 31)) / 86400000)
+  let offset = Math.floor((date.getTime() - new Date(1900, 0, 31).getTime()) / (24 * 60 * 60 * 1000))
 
   let lunarYear = 1900
   let lunarMonth = 1
@@ -233,7 +208,9 @@ export const solarToLunar = (date: Date): LunarDate => {
   // 计算年
   for (let i = 0; i < LUNAR_INFO.length && offset > 0; i++) {
     const daysInLunarYear = getLunarYearDays(LUNAR_INFO[i])
-    if (offset < daysInLunarYear) break
+    if (offset < daysInLunarYear) {
+      break
+    }
     offset -= daysInLunarYear
     lunarYear++
   }
@@ -266,7 +243,7 @@ export const solarToLunar = (date: Date): LunarDate => {
   const minute = date.getMinutes()
   const second = date.getSeconds()
 
-  // 农历日期文本 LUNAR_MONTH 是农历月份，LUNAR_DAY 是农历日期
+  // 农历日期文本
   const text = `${lunarYear}年 ${LUNAR_MONTH[lunarMonth - 1]}月 ${LUNAR_DAY[lunarDay - 1]}`
 
   return {
@@ -278,8 +255,9 @@ export const solarToLunar = (date: Date): LunarDate => {
     second,
     isLeap,
     solarDate: date,
-    date: new Date(lunarYear, lunarMonth - 1, lunarDay, hour, minute, second),
     text,
+    monthIndex: lunarMonth - 1,
+    dateIndex: lunarDay - 1,
   }
 }
 
@@ -292,26 +270,37 @@ export const getSolarAndLunarDate = async (date: Date, longitudeOrAddress?: numb
   return solarToLunar(solarTime.date)
 }
 
-/** 计算黄经度数（角度） */
+/**
+ * 计算太阳黄经度数（角度）
+ * @param jd - 儒略日
+ * @returns 太阳黄经度数（0-360度）
+ */
 export const getSolarLongitude = (jd: number): number => {
-  // TD = TT - UT1，这里使用近似值
-  const td = (jd - 2451545.0) / 36525
+  // 计算儒略世纪数
+  const T = (jd - 2451545.0) / 36525
 
   // 太阳轨道根数
-  const L0 = 280.46645 + 36000.76983 * td + 0.0003032 * td * td // 平黄经
-  const M = 357.5291 + 35999.0503 * td - 0.0001559 * td * td // 平近点角
-  const e = 0.016708617 - 0.000042037 * td // 轨道离心率
+  const L0 = 280.46646 + T * (36000.76983 + T * 0.0003032) // 平黄经
+  const M = 357.52911 + T * (35999.05029 - T * 0.0001537) // 平近点角
+  const e = 0.016708634 - T * (0.000042037 + T * 0.0000001267) // 轨道离心率
 
   // 计算中心差
+  const sinM = Math.sin((M * Math.PI) / 180)
+  const sin2M = Math.sin((2 * M * Math.PI) / 180)
   const C =
-    (1.9146 - 0.004817 * td - 0.000014 * td * td) * Math.sin((M * Math.PI) / 180) +
-    (0.019993 - 0.000101 * td) * Math.sin((2 * M * Math.PI) / 180) +
-    0.00029 * Math.sin((3 * M * Math.PI) / 180)
+    (1.914602 - T * (0.004817 + T * 0.000014)) * sinM +
+    (0.019993 - T * 0.000101) * sin2M +
+    0.000289 * Math.sin((3 * M * Math.PI) / 180) +
+    0.000145 * Math.sin((4 * M * Math.PI) / 180) +
+    0.000031 * Math.sin((5 * M * Math.PI) / 180) +
+    e * sinM * 0.00134 // 加入轨道离心率的影响
 
-  // 真黄经
-  const L = L0 + C
+  // 计算真黄经并应用岁差修正
+  const omega = 125.04 - 1934.136 * T
+  const L = L0 + C - (0.00569 + 0.00478 * Math.sin((omega * Math.PI) / 180))
 
-  return L % 360
+  // 标准化到 0-360 度
+  return ((L % 360) + 360) % 360
 }
 
 /** 将日期转换为儒略日 */

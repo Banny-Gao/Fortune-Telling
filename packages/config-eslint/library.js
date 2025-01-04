@@ -33,5 +33,13 @@ module.exports = {
   ignorePatterns: ['node_modules/', 'dist/'],
   rules: {
     'import/no-default-export': 'off',
+    'import/order': 'off',
+    'no-console': 'off',
+    'no-bitwise': 'off',
+    'no-nested-ternary': 'off',
+    '@typescript-eslint/consistent-type-definitions': 'off',
+    '@typescript-eslint/no-floating-promises': 'off',
+    '@typescript-eslint/no-unsafe-return': 'warn',
+    '@typescript-eslint/no-unsafe-member-access': 'warn',
   },
 }

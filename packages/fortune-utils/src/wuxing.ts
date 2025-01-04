@@ -1,4 +1,4 @@
-import { IndexField, OptionField } from './types'
+import type { IndexField, OptionField } from './types'
 
 export const YIN_YANG_NAME = ['阴', '阳']
 export const WX_NAME = ['木', '火', '土', '金', '水']
@@ -12,7 +12,7 @@ export const WX_NUMBERS = [
 ]
 
 /** 阴阳 */
-export type YinYang = OptionField<{}>
+export type YinYang = OptionField
 export const yinYangs: YinYang[] = YIN_YANG_NAME.map((name, index) => ({
   name,
   value: index === 0 ? -1 : 1,
