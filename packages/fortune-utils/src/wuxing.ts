@@ -27,3 +27,5 @@ export const wuxings: WuXing[] = WX_NAME.map((name, index) => ({
   index,
   numbers: WX_NUMBERS[index],
 }))
+/** 根据名称获取五行 */
+export const getWuXing = (name: string): WuXing | undefined => wuxings.find(item => item.name === name)

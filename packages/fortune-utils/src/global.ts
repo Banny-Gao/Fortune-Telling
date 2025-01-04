@@ -32,3 +32,8 @@ export type OptionField<T extends Option = Option> = {
 export type IndexField<T = object> = BasicField<T> & {
   index: number
 }
+
+export type TargetField<T = object> = BasicField<T> & {
+  targetName: string
+  targetIndex: number
+}
