@@ -1,4 +1,5 @@
 import { load } from '@amap/amap-jsapi-loader'
+import { getWindow } from '../browser'
 
 declare global {
   interface Window {
@@ -8,7 +9,7 @@ declare global {
   }
 }
 
-window._AMapSecurityConfig = {
+;(getWindow() as Window)._AMapSecurityConfig = {
   securityJsCode: 'da44670b52fc3896d170116c609c0e6e',
 }
 

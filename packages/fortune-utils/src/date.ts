@@ -2,7 +2,7 @@ import dayjs from 'dayjs'
 import { LUNAR_INFO } from './data/lunar-years'
 import { getCurrentLoc, getLocation } from './utils/map'
 
-import type { IndexField } from './types'
+import type { IndexField } from './global'
 
 /** 四季 */
 export const SEASON_NAME = ['春', '夏', '秋', '冬']

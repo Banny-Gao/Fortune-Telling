@@ -1,4 +1,4 @@
-import type { IndexField, OptionField } from './types'
+import type { IndexField, OptionField } from './global'
 
 export const YIN_YANG_NAME = ['阴', '阳']
 export const WX_NAME = ['木', '火', '土', '金', '水']

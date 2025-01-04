@@ -3,7 +3,7 @@ import { SOLAR_TERM, seasons, getSolarTerms, getSolarAndLunarDate } from './date
 import { animals, directions } from './constant'
 import { lcm } from './utils/math'
 
-import type { IndexField } from './types'
+import type { IndexField } from './global'
 import type { LunarDate } from './date'
 import type { WuXing } from './wuxing'
 

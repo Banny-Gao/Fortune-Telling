@@ -4,42 +4,56 @@ import commonjs from '@rollup/plugin-commonjs'
 import terser from '@rollup/plugin-terser'
 
 const input = 'src/index.ts'
-const external = [] // 添加外部依赖
+const external = ['dayjs', '@amap/amap-jsapi-loader']
 
-const plugins = [
-  nodeResolve(),
-  commonjs(),
-  typescript({
-    tsconfig: './tsconfig.json',
-    declaration: true,
-    declarationDir: 'dist',
-  }),
-]
+// 基础插件配置
+const basePlugins = [nodeResolve(), commonjs()]
 
 export default [
   // ESM build
   {
     input,
     output: {
-      file: 'dist/index.js',
+      dir: 'dist/esm',
       format: 'es',
       sourcemap: true,
+      preserveModules: true,
+      preserveModulesRoot: 'src',
     },
-    plugins,
+    plugins: [
+      ...basePlugins,
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: true,
+        declarationDir: 'dist/esm/types',
+        outDir: 'dist/esm',
+        exclude: ['**/*.test.ts'],
+      }),
+    ],
     external,
   },
   // CJS build
   {
     input,
     output: {
-      file: 'dist/index.cjs',
+      dir: 'dist/cjs',
       format: 'cjs',
       sourcemap: true,
+      preserveModules: true,
+      preserveModulesRoot: 'src',
     },
-    plugins,
+    plugins: [
+      ...basePlugins,
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: false,
+        outDir: 'dist/cjs',
+        exclude: ['**/*.test.ts'],
+      }),
+    ],
     external,
   },
-  // Minified ESM build
+  // Minified bundle
   {
     input,
     output: {
@@ -47,7 +61,15 @@ export default [
       format: 'es',
       sourcemap: true,
     },
-    plugins: [...plugins, terser()],
+    plugins: [
+      ...basePlugins,
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: false,
+        exclude: ['**/*.test.ts'],
+      }),
+      terser(),
+    ],
     external,
   },
 ]
