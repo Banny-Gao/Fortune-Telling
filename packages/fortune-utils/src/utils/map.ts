@@ -1,5 +1,5 @@
 import { load } from '@amap/amap-jsapi-loader'
-import { getWindow } from '../browser'
+import { getWindow } from './browser'
 
 declare global {
   interface Window {

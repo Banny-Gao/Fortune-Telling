@@ -5,9 +5,9 @@ import { getCurrentLoc, getLocation } from './utils/map'
 import type { IndexField } from './global'
 
 /** 四季 */
-export const SEASON_NAME = ['春', '夏', '秋', '冬']
+export const SEASON_NAME = ['春', '夏', '秋', '冬'] as const
 /** 农历月份 */
-export const LUNAR_MONTH = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊']
+export const LUNAR_MONTH = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'] as const
 /** 农历日期 */
 export const LUNAR_DAY = [
   '初一',
@@ -40,7 +40,7 @@ export const LUNAR_DAY = [
   '廿八',
   '廿九',
   '三十',
-]
+] as const
 /** 二十四节气 */
 export const SOLAR_TERM = [
   '立春',
@@ -67,10 +67,13 @@ export const SOLAR_TERM = [
   '冬至',
   '小寒',
   '大寒',
-]
+] as const
 
 /** 四季 */
-export type Season = IndexField
+export type SeasonName = (typeof SEASON_NAME)[number]
+export type Season = IndexField<{
+  name: SeasonName
+}>
 export const seasons: Season[] = SEASON_NAME.map((name, index) => ({
   index,
   name,
@@ -300,7 +303,7 @@ export const getSolarLongitude = (jd: number): number => {
   const L = L0 + C - (0.00569 + 0.00478 * Math.sin((omega * Math.PI) / 180))
 
   // 标准化到 0-360 度
-  return ((L % 360) + 360) % 360
+  return (L + 360) % 360
 }
 
 /** 将日期转换为儒略日 */
@@ -373,9 +376,10 @@ export const fromJulianDay = (jd: number): Date => {
 }
 
 /** 节气接口 */
+export type SolarTermName = (typeof SOLAR_TERM)[number]
 export interface SolarTerm {
   // 节气名称
-  name: string
+  name: SolarTermName
   // 节气日期农历日期
   lunarDate: LunarDate
 }
