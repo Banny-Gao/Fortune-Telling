@@ -173,7 +173,10 @@ export const getTrueSolarTime = async (date: Date, longitudeOrAddress?: number |
   }
 
   // 4. 计算时分秒
-  const [hours, minutes, seconds] = [Math.floor(correctedSeconds / 3600), Math.floor((correctedSeconds % 3600) / 60), Math.floor(correctedSeconds % 60)]
+  const hours = Math.floor(correctedSeconds / 3600)
+  const remainingSeconds = correctedSeconds % 3600
+  const minutes = Math.floor(remainingSeconds / 60)
+  const seconds = Math.round(remainingSeconds % 60) // 使用 round 处理小数
 
   const newDate = new Date(years, months - 1, days, hours, minutes, seconds)
   const format = (pattern?: string): string => dayjs(newDate).format(pattern || 'YYYY-MM-DD HH:mm')
