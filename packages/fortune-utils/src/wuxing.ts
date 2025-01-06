@@ -1,34 +1,23 @@
-import { generateRelation } from './global'
-import type { IndexField, OptionField } from './global'
+import { generateRelation, getObjectByName, generateNamesProp } from './global'
 
 /** 阴阳 */
 export type YinYang = OptionField<{
   name: YinYangName
   value: YinYangValue
 }>
-/** 五行 */
-export type WuXing = IndexField<{
-  name: WuXingName
-  numbers: number[]
-  sheng: ReturnType<typeof woSheng>
-  shengWo: ReturnType<typeof shengWo>
-  ke: ReturnType<typeof woKe>
-  keWo: ReturnType<typeof keWo>
-  wuzang: string
-  liuFu: string
-  SHENG: typeof woSheng
-  SHENG_WO: typeof shengWo
-  KE: typeof woKe
-  KE_WO: typeof keWo
-}>
-/** 阴阳 */
-export type YinYangName = (typeof YIN_YANG_NAME)[number]
+export type YinYangName = NameConst<typeof YIN_YANG_NAME>
 export type YinYangValue = -1 | 1
 export const YIN_YANG_NAME = ['阴', '阳'] as const
+export const yinYangs: YinYang[] = YIN_YANG_NAME.map<YinYang>((name, index) => ({
+  name,
+  value: index === 0 ? -1 : 1,
+}))
+
 /** 五行 */
-export type WuXingName = (typeof WX_NAME)[number]
+export type WuXingName = NameConst<typeof WX_NAME>
 export const WX_NAME = ['木', '火', '土', '金', '水'] as const
 /** 五行数字 */
+export type WuXingNumbers = (typeof WX_NUMBERS)[number]
 export const WX_NUMBERS = [
   /** 五行数字 */
   [3, 8], // 木
@@ -36,41 +25,25 @@ export const WX_NUMBERS = [
   [5, 10], // 土
   [4, 9], // 金
   [1, 6], // 水
-]
+] as const
 /** 五常 */
+export type WuChangName = NameConst<typeof WU_CHANG_NAME>
 export const WU_CHANG_NAME = ['仁', '礼', '信', '义', '智'] as const
-/** 五志 */
-export const WU_ZHI_NAME = ['怒', '喜', '思', '悲', '恐'] as const
 /** 五脏 */
+export type WuZangName = NameConst<typeof WU_ZANG_NAME>
 export const WU_ZANG_NAME = ['肝', '心', '脾', '肺', '肾'] as const
 /** 六腑 */
-export const WU_FU_NAME = ['胆', '小肠', '胃', '大肠', '膀胱', '三焦'] as const
+export type WuFuName = NameConst<typeof WU_FU_NAME>
+export const WU_FU_NAME = ['胆', '小肠', '胃', '大肠', '膀胱'] as const
 /** 五色 */
+export type WuSeName = NameConst<typeof WU_SE_NAME>
 export const WU_SE_NAME = ['青', '赤', '黄', '白', '黑'] as const
 /** 五味 */
+export type WuWeiName = NameConst<typeof WU_WEI_NAME>
 export const WU_WEI_NAME = ['酸', '苦', '甘', '辛', '咸'] as const
-/** 五音 */
-export const WU_YIN_NAME = ['角', '徵', '宫', '商', '羽'] as const
-/** 五声 */
-export const WU_SHENG_NAME = ['呼', '笑', '歌', '哭', '呻'] as const
-/** 五气 */
-export const WU_QI_NAME = ['嘘', '呵', '呼', '呬', '吹'] as const
-/** 五华 */
-export const WU_HUA_NAME = ['面', '舌', '唇', '毛', '发'] as const
-/** 五体 */
-export const WU_TI_NAME = ['筋', '脉', '肉', '皮', '骨'] as const
-/** 五神 */
-export const WU_SHEN_NAME = ['魂', '神', '意', '魄', '志'] as const
-/** 五窍 */
-export const WU_QIAO_NAME = ['目', '舌', '口', '鼻', '耳'] as const
-/** 五脉 */
-export const WUMAI = ['太阳脉', '少阳脉', '阴维脉', '少阴脉', '厥阴脉'] as const
-
-/** 阴阳 */
-export const yinYangs: YinYang[] = YIN_YANG_NAME.map<YinYang>((name, index) => ({
-  name,
-  value: index === 0 ? -1 : 1,
-}))
+/** 五志 */
+export type WuZhiName = NameConst<typeof WU_ZHI_NAME>
+export const WU_ZHI_NAME = ['怒', '喜', '思', '悲', '恐'] as const
 
 /** 我生 */
 export const woSheng = generateRelation<WuXing, WuXing>([...WX_NAME], function (this: WuXing, targetIndex: number) {
@@ -89,11 +62,37 @@ export const keWo = generateRelation<WuXing, WuXing>([...WX_NAME], function (thi
   return (targetIndex - this.index + 5) % 5 === 3
 })
 /** 五行 */
+export type WuXing = IndexField<{
+  name: WuXingName
+  numbers: WuXingNumbers
+  sheng: ReturnType<typeof woSheng>
+  shengWo: ReturnType<typeof shengWo>
+  ke: ReturnType<typeof woKe>
+  keWo: ReturnType<typeof keWo>
+  SHENG: typeof woSheng
+  SHENG_WO: typeof shengWo
+  KE: typeof woKe
+  KE_WO: typeof keWo
+  wuzang: WuZangName
+  liuFu: WuFuName
+  wuzhi: WuZhiName
+  wuwei: WuWeiName
+  wuse: WuSeName
+}>
 export const wuxings: WuXing[] = WX_NAME.map((name, index) => {
   const wuxing = {
+    ...generateNamesProp(
+      {
+        wuzang: WU_ZANG_NAME,
+        liuFu: WU_FU_NAME,
+        wuzhi: WU_ZHI_NAME,
+        wuwei: WU_WEI_NAME,
+        wuse: WU_SE_NAME,
+      },
+      index
+    ),
     name,
     index,
-    numbers: WX_NUMBERS[index],
     SHENG: woSheng,
     SHENG_WO: shengWo,
     KE: woKe,
@@ -108,5 +107,5 @@ export const wuxings: WuXing[] = WX_NAME.map((name, index) => {
   return wuxing
 })
 /** 根据名称获取五行 */
-export const getWuXing = (name: string): WuXing | undefined => wuxings.find(item => item.name === name)
+export const getWuXing = (name: WuXingName): WuXing | undefined => getObjectByName(wuxings, name)
 console.log('五行：', wuxings)

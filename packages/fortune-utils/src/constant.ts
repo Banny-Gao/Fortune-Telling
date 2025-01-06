@@ -1,10 +1,8 @@
-import type { IndexField } from './global'
-
 export const ANIMAL_NAME = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'] as const
 export const DIRECTION_NAME = ['东', '南', '中', '西', '北'] as const
 
 /** 生肖 */
-export type AnimalName = (typeof ANIMAL_NAME)[number]
+export type AnimalName = NameConst<typeof ANIMAL_NAME>
 export type Animal = IndexField<{
   name: AnimalName
 }>
@@ -14,7 +12,7 @@ export const animals: Animal[] = ANIMAL_NAME.map((name, index) => ({
 }))
 
 /** 方位 */
-export type DirectionName = (typeof DIRECTION_NAME)[number]
+export type DirectionName = NameConst<typeof DIRECTION_NAME>
 export type Direction = IndexField<{
   name: DirectionName
 }>

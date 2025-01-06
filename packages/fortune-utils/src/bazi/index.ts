@@ -1,16 +1,32 @@
-import { wuxings, yinYangs, getWuXing } from './wuxing'
-import { SOLAR_TERM, seasons, getSolarTerms, getSolarAndLunarDate } from './date'
-import { animals, directions } from './constant'
-import { lcm } from './utils/math'
-import { getRelation } from './global'
+import { wuxings, yinYangs, getWuXing } from '../wuxing'
+import { SOLAR_TERM, seasons, getSolarTerms, getSolarAndLunarDate } from '../date'
+import { animals, directions } from '../constant'
+import { lcm } from '../utils/math'
+import { getRelation } from '../global'
 
-import type { IndexField, TargetField } from './global'
-import type { LunarDate } from './date'
-import type { WuXing, YinYang, WuXingName } from './wuxing'
-import type { Direction } from './constant'
+import type { LunarDate } from '../date'
+import type { WuXing, YinYang, WuXingName } from '../wuxing'
+import type { Direction } from '../constant'
 
+/** 十天干 */
+export type GanName = NameConst<typeof GAN_NAME>
+export const GAN_NAME = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
+/** 天干五合 */
+export const GAN_WUHE = [
+  ['甲', '己', '土', '中正'],
+  ['乙', '庚', '金', '仁义'],
+  ['丙', '辛', '水', '威制'],
+  ['丁', '壬', '木', '淫慝'],
+  ['戊', '癸', '火', '无情'],
+] as const
+/** 天干相冲 */
+export const GAN_CHONG = [
+  ['甲', '庚'],
+  ['乙', '辛'],
+  ['丙', '壬'],
+  ['丁', '癸'],
+] as const
 /** 天干接口 */
-export type GanName = (typeof GAN_NAME)[number]
 export type Gan = IndexField<{
   name: GanName
   /** 天干
@@ -39,94 +55,6 @@ export type Gan = IndexField<{
   chong: ReturnType<typeof ganChong>
   CHONG: typeof ganChong
 }>
-/** 地支接口 */
-export type ZhiName = (typeof ZHI_NAME)[number]
-export type Zhi = IndexField<{
-  name: ZhiName
-}>
-/** 干支接口 */
-export type GanZhiName = (typeof NAYIN_WUXING)[number][0 | 1]
-export type NayinName = (typeof NAYIN_WUXING)[number][2]
-export type GanZhi = IndexField<{
-  name: GanZhiName
-  gan: Gan
-  zhi: Zhi
-  nianYin: NayinName
-}>
-/** 八字接口 */
-export interface Bazi {
-  sizhu: GanZhi[]
-  tiangan: Gan[]
-  dizhi: Zhi[]
-  canggan?: Gan[]
-}
-
-/** 十天干 */
-export const GAN_NAME = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
-/** 天干五合 */
-export const GAN_WUHE = [
-  ['甲', '己', '土', '中正'],
-  ['乙', '庚', '金', '仁义'],
-  ['丙', '辛', '水', '威制'],
-  ['丁', '壬', '木', '淫慝'],
-  ['戊', '癸', '火', '无情'],
-] as const
-/** 天干相冲 */
-export const GAN_CHONG = [
-  ['甲', '庚'],
-  ['乙', '辛'],
-  ['丙', '壬'],
-  ['丁', '癸'],
-] as const
-
-/** 十二地支 */
-export const ZHI_NAME = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
-/** 四正（子午卯酉） */
-export type SizhengName = (typeof ZHI_NAME)[number]
-export const ZHENG_ZHI_NAME = ['子', '午', '卯', '酉'] as SizhengName[]
-/** 四隅（寅申巳亥） */
-export type SiyuName = (typeof ZHI_NAME)[number]
-export const SI_YU_NAME = ['寅', '申', '巳', '亥'] as SiyuName[]
-/** 四库（辰戌丑未）, 皆属土，依次分别为 水库 火库 金库 木库 */
-export type SikuName = (typeof ZHI_NAME)[number]
-export const SI_KU_NAME = ['辰', '戌', '丑', '未'] as SikuName[]
-
-/** 纳音五行 */
-export const NAYIN_WUXING = [
-  ['甲子', '乙丑', '海中金'],
-  ['丙寅', '丁卯', '炉中火'],
-  ['戊辰', '己巳', '大林木'],
-  ['庚午', '辛未', '路旁土'],
-  ['壬申', '癸酉', '剑锋金'],
-  ['甲戌', '乙亥', '山头火'],
-  ['丙子', '丁丑', '涧下水'],
-  ['戊寅', '己卯', '城头土'],
-  ['庚辰', '辛巳', '白蜡金'],
-  ['壬午', '癸未', '杨柳木'],
-  ['甲申', '乙酉', '泉中水'],
-  ['丙戌', '丁亥', '屋上土'],
-  ['戊子', '己丑', '霹雳火'],
-  ['庚寅', '辛卯', '松柏木'],
-  ['壬辰', '癸巳', '长流水'],
-  ['甲午', '乙未', '沙中金'],
-  ['丙申', '丁酉', '山下火'],
-  ['戊戌', '己亥', '平地木'],
-  ['庚子', '辛丑', '壁上土'],
-  ['壬寅', '癸卯', '金箔金'],
-  ['甲辰', '乙巳', '覆灯火'],
-  ['丙午', '丁未', '天河水'],
-  ['戊申', '己酉', '大驿土'],
-  ['庚戌', '辛亥', '钗钏金'],
-  ['壬子', '癸丑', '桑柘木'],
-  ['甲寅', '乙卯', '太溪水'],
-  ['丙辰', '丁巳', '沙中土'],
-  ['戊午', '己未', '天上火'],
-  ['庚申', '辛酉', '石榴木'],
-  ['壬戌', '癸亥', '大海水'],
-] as const
-/** 十二长生 */
-export const TWELVE_LONG_LIFE_NAME = ['长生', '沐浴', '冠带', '临官', '帝旺', '衰', '病', '死', '墓', '绝', '胎', '养'] as const
-
 /** 十天干 */
 export const gans: Gan[] = GAN_NAME.map((name, index) => {
   const gan = {
@@ -189,13 +117,25 @@ export function ganChong(this: Gan, target: Gan | GanName): GanChong | undefined
   }) as GanChong
 }
 
+/** 十二地支 */
+export type ZhiName = NameConst<typeof ZHI_NAME>
+export const ZHI_NAME = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
+/** 四正（子午卯酉） */
+export type SizhengName = NameConst<typeof ZHENG_ZHI_NAME>
+export const ZHENG_ZHI_NAME = ['子', '午', '卯', '酉'] as const
+/** 四隅（寅申巳亥） */
+export type SiyuName = NameConst<typeof SI_YU_NAME>
+export const SI_YU_NAME = ['寅', '申', '巳', '亥'] as const
+/** 四库（辰戌丑未）, 皆属土，依次分别为 水库 火库 金库 木库 */
+export type SikuName = NameConst<typeof SI_KU_NAME>
+export const SI_KU_NAME = ['辰', '戌', '丑', '未'] as const
 /** 获取地支的五行 */
 export const getZhiWuxing = (name: Zhi['name'], index: Zhi['index']): WuXing => {
   const offset = -2 + 12
 
   let wuxingIndex = (Math.floor((index + offset) / 3) % 4) % 12
 
-  if (isInSiku(name)) {
+  if (isSiku(name)) {
     wuxingIndex = 2
   } else if (wuxingIndex >= 2) {
     wuxingIndex++
@@ -204,12 +144,16 @@ export const getZhiWuxing = (name: Zhi['name'], index: Zhi['index']): WuXing => 
   return wuxings[wuxingIndex]
 }
 /** 判断是否属于四正 */
-export const isInZhengZhi = (name: Zhi['name']): boolean => ZHENG_ZHI_NAME.includes(name)
+export const isZhengZhi = (name: Zhi['name']): boolean => ZHENG_ZHI_NAME.includes(name as SizhengName)
 /** 判断是否属于四隅 */
-export const isInSiYu = (name: Zhi['name']): boolean => SI_YU_NAME.includes(name)
+export const isSiYu = (name: Zhi['name']): boolean => SI_YU_NAME.includes(name as SiyuName)
 /** 判断是否属于四库 */
-export const isInSiku = (name: Zhi['name']): boolean => SI_KU_NAME.includes(name)
+export const isSiku = (name: Zhi['name']): boolean => SI_KU_NAME.includes(name as SikuName)
 /** 十二地支 */
+/** 地支接口 */
+export type Zhi = IndexField<{
+  name: ZhiName
+}>
 export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
   return {
     name,
@@ -221,6 +165,52 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
     animal: animals[index % 12],
   }
 })
+
+/** 纳音五行 */
+/** 干支接口 */
+export type GanZhiName = (typeof NAYIN_WUXING)[number][0 | 1]
+export type NayinName = (typeof NAYIN_WUXING)[number][2]
+export type GanZhi = IndexField<{
+  name: GanZhiName
+  gan: Gan
+  zhi: Zhi
+  nianYin: NayinName
+}>
+export const NAYIN_WUXING = [
+  ['甲子', '乙丑', '海中金'],
+  ['丙寅', '丁卯', '炉中火'],
+  ['戊辰', '己巳', '大林木'],
+  ['庚午', '辛未', '路旁土'],
+  ['壬申', '癸酉', '剑锋金'],
+  ['甲戌', '乙亥', '山头火'],
+  ['丙子', '丁丑', '涧下水'],
+  ['戊寅', '己卯', '城头土'],
+  ['庚辰', '辛巳', '白蜡金'],
+  ['壬午', '癸未', '杨柳木'],
+  ['甲申', '乙酉', '泉中水'],
+  ['丙戌', '丁亥', '屋上土'],
+  ['戊子', '己丑', '霹雳火'],
+  ['庚寅', '辛卯', '松柏木'],
+  ['壬辰', '癸巳', '长流水'],
+  ['甲午', '乙未', '沙中金'],
+  ['丙申', '丁酉', '山下火'],
+  ['戊戌', '己亥', '平地木'],
+  ['庚子', '辛丑', '壁上土'],
+  ['壬寅', '癸卯', '金箔金'],
+  ['甲辰', '乙巳', '覆灯火'],
+  ['丙午', '丁未', '天河水'],
+  ['戊申', '己酉', '大驿土'],
+  ['庚戌', '辛亥', '钗钏金'],
+  ['壬子', '癸丑', '桑柘木'],
+  ['甲寅', '乙卯', '太溪水'],
+  ['丙辰', '丁巳', '沙中土'],
+  ['戊午', '己未', '天上火'],
+  ['庚申', '辛酉', '石榴木'],
+  ['壬戌', '癸亥', '大海水'],
+] as const
+/** 十二长生 */
+export type TwelveLongLifeName = NameConst<typeof TWELVE_LONG_LIFE_NAME>
+export const TWELVE_LONG_LIFE_NAME = ['长生', '沐浴', '冠带', '临官', '帝旺', '衰', '病', '死', '墓', '绝', '胎', '养'] as const
 
 /** 获取干支纳音 */
 export const getNianYin = (name: GanZhiName): NayinName => {
@@ -351,6 +341,13 @@ export const getHourZhi = (lunarDate: LunarDate): Zhi => {
   return zhis[getZhiShiIndex(lunarDate.hour)]
 }
 /** 获取八字 */
+/** 八字接口 */
+export interface Bazi {
+  sizhu: GanZhi[]
+  tiangan: Gan[]
+  dizhi: Zhi[]
+  canggan?: Gan[]
+}
 export const getBazi = async (date: Date, address?: number | string): Promise<Bazi> => {
   console.log('十天干：', gans)
   const lunarDate = await getSolarAndLunarDate(date, address)

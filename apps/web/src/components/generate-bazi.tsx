@@ -5,7 +5,7 @@ import type { Bazi } from '@repo/fortune-utils'
 export default function GenerateBazi(): React.ReactElement {
   const [bazi, setBazi] = useState<Bazi | null>(null)
   const fetchBazi = async (): Promise<void> => {
-    const baziResult = await getBazi(new Date())
+    const baziResult = await getBazi(new Date(), 120.19)
     setBazi(baziResult)
   }
 

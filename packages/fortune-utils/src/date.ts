@@ -2,13 +2,14 @@ import dayjs from 'dayjs'
 import { LUNAR_INFO } from './data/lunar-years'
 import { getCurrentLoc, getLocation } from './utils/map'
 
-import type { IndexField } from './global'
-
 /** 四季 */
+export type SeasonName = NameConst<typeof SEASON_NAME>
 export const SEASON_NAME = ['春', '夏', '秋', '冬'] as const
 /** 农历月份 */
+export type LunarMonth = NameConst<typeof LUNAR_MONTH>
 export const LUNAR_MONTH = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'] as const
 /** 农历日期 */
+export type LunarDay = NameConst<typeof LUNAR_DAY>
 export const LUNAR_DAY = [
   '初一',
   '初二',
@@ -42,6 +43,7 @@ export const LUNAR_DAY = [
   '三十',
 ] as const
 /** 二十四节气 */
+export type SolarTermName = NameConst<typeof SOLAR_TERM>
 export const SOLAR_TERM = [
   '立春',
   '雨水',
@@ -70,7 +72,6 @@ export const SOLAR_TERM = [
 ] as const
 
 /** 四季 */
-export type SeasonName = (typeof SEASON_NAME)[number]
 export type Season = IndexField<{
   name: SeasonName
 }>
@@ -379,7 +380,6 @@ export const fromJulianDay = (jd: number): Date => {
 }
 
 /** 节气接口 */
-export type SolarTermName = (typeof SOLAR_TERM)[number]
 export interface SolarTerm {
   // 节气名称
   name: SolarTermName
