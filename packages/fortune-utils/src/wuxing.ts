@@ -26,6 +26,9 @@ export const WX_NUMBERS = [
   [4, 9], // 金
   [1, 6], // 水
 ] as const
+/** 方位 */
+export type DirectionName = NameConst<typeof DIRECTION_NAME>
+export const DIRECTION_NAME = ['东', '南', '中', '西', '北'] as const
 /** 五常 */
 export type WuChangName = NameConst<typeof WU_CHANG_NAME>
 export const WU_CHANG_NAME = ['仁', '礼', '信', '义', '智'] as const
@@ -83,6 +86,7 @@ export const wuxings: WuXing[] = WX_NAME.map((name, index) => {
   const wuxing = {
     ...generateNamesProp(
       {
+        fangwei: DIRECTION_NAME,
         wuzang: WU_ZANG_NAME,
         liuFu: WU_FU_NAME,
         wuzhi: WU_ZHI_NAME,

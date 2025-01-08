@@ -1,19 +1,17 @@
 import { wuxings, yinYangs, getWuXing } from '../wuxing'
-import { SOLAR_TERM, seasons, getSolarTerms, getSolarAndLunarDate } from '../date'
-import { animals, directions } from '../constant'
-import { lcm } from '../utils/math'
-import { getRelation } from '../global'
-import { SHISHEN_NAME } from './shishen'
+import { SOLAR_TERM, SEASON_NAME, getSolarTerms, getSolarAndLunarDate } from '../date'
 
-import type { LunarDate } from '../date'
+import { lcm } from '../utils/math'
+import { getRelation, generateNamesProp } from '../global'
+
 import type { WuXing, YinYang, WuXingName } from '../wuxing'
-import type { Direction, Animal } from '../constant'
-import type { Season } from '../date'
+import type { SeasonName, LunarDate } from '../date'
 import type { GanZhiShishen } from './shishen'
 
 /** 十天干 */
 export type GanName = NameConst<typeof GAN_NAME>
 export const GAN_NAME = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
+
 /** 天干五合 */
 export const GAN_WUHE = [
   ['甲', '己', '土', '中正'],
@@ -22,6 +20,27 @@ export const GAN_WUHE = [
   ['丁', '壬', '木', '淫慝'],
   ['戊', '癸', '火', '无情'],
 ] as const
+export type GanHeDescription = (typeof GAN_WUHE)[number][3]
+export type GanHe = TargetField<{
+  name: GanName
+  description: GanHeDescription
+  hua?: WuXing
+}>
+/** thisArg, 不可为箭头函数 */
+export function ganHe(this: Gan, target: Gan | GanName): GanHe | undefined {
+  const transform = ([_, _name2, hua, description]: string[]): Required<Omit<GanHe, keyof TargetField>> => ({
+    description: description as GanHeDescription,
+    hua: getWuXing(hua as WuXingName) as WuXing,
+  })
+
+  return getRelation.call(this, {
+    target,
+    nameArray: [...GAN_NAME],
+    relationArray: GAN_WUHE.map(item => [...item]),
+    transform,
+  }) as GanHe
+}
+
 /** 天干相冲 */
 export const GAN_CHONG = [
   ['甲', '庚'],
@@ -29,6 +48,22 @@ export const GAN_CHONG = [
   ['丙', '壬'],
   ['丁', '癸'],
 ] as const
+export type GanChong = TargetField<{
+  name: GanName
+  targetName: GanName
+}>
+export function ganChong(this: Gan, target: Gan | GanName): GanChong | undefined {
+  return getRelation.call(this, {
+    target,
+    nameArray: [...GAN_NAME],
+    relationArray: GAN_CHONG.map(item => [...item]),
+  }) as GanChong
+}
+
+/** 十二长生 todo */
+export type TwelveLongLifeName = NameConst<typeof TWELVE_LONG_LIFE_NAME>
+export const TWELVE_LONG_LIFE_NAME = ['长生', '沐浴', '冠带', '临官', '帝旺', '衰', '病', '死', '墓', '绝', '胎', '养'] as const
+
 /** 天干接口 */
 export type Gan = IndexField<{
   name: GanName
@@ -38,7 +73,6 @@ export type Gan = IndexField<{
    */
   yinYang: YinYang
   wuxing: WuXing
-  direction: Direction
   /*
    * 五虎遁: 年上起月，表示正月天干
    * 甲己之年丙作首，乙庚之岁戊为头，丙辛之岁寻庚起，丁壬壬位顺行流，戊癸何方发，壬子是真途
@@ -65,7 +99,6 @@ export const gans: Gan[] = GAN_NAME.map((name, index) => {
     name,
     yinYang: yinYangs[(index + 1) % 2],
     wuxing: wuxings[Math.floor(index / 2) % 5],
-    direction: directions[Math.floor(index / 2) % 5],
     wuhudun: {
       name,
       index,
@@ -86,63 +119,35 @@ export const gans: Gan[] = GAN_NAME.map((name, index) => {
 
   return gan
 })
-/** 天干五合 */
-export type GanHeDescription = (typeof GAN_WUHE)[number][3]
-export type GanHe = TargetField<{
-  name: GanName
-  description: GanHeDescription
-  hua?: WuXing
-}>
-/** thisArg, 不可为箭头函数 */
-export function ganHe(this: Gan, target: Gan | GanName): GanHe | undefined {
-  const transform = ([_, _name2, hua, description]: string[]): Required<Omit<GanHe, keyof TargetField>> => ({
-    description: description as GanHeDescription,
-    hua: getWuXing(hua as WuXingName) as WuXing,
-  })
-
-  return getRelation.call(this, {
-    target,
-    nameArray: [...GAN_NAME],
-    relationArray: GAN_WUHE.map(item => [...item]),
-    transform,
-  }) as GanHe
-}
-/** 天干相冲 */
-export type GanChong = TargetField<{
-  name: GanName
-  targetName: GanName
-}>
-export function ganChong(this: Gan, target: Gan | GanName): GanChong | undefined {
-  return getRelation.call(this, {
-    target,
-    nameArray: [...GAN_NAME],
-    relationArray: GAN_CHONG.map(item => [...item]),
-  }) as GanChong
-}
 
 /** 十二地支 */
 export type ZhiName = NameConst<typeof ZHI_NAME>
 export const ZHI_NAME = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
-/** 四正（子午卯酉） */
+/** 生肖 */
+export type AnimalName = NameConst<typeof ANIMAL_NAME>
+export const ANIMAL_NAME = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'] as const
+
+/** 四正|四旺（子午卯酉） */
 export type SizhengName = NameConst<typeof ZHENG_ZHI_NAME>
 export const ZHENG_ZHI_NAME = ['子', '午', '卯', '酉'] as const
-/** 四隅（寅申巳亥） */
+/** 四隅|四长生（寅申巳亥） */
 export type SiyuName = NameConst<typeof SI_YU_NAME>
 export const SI_YU_NAME = ['寅', '申', '巳', '亥'] as const
-/** 四库（辰戌丑未）, 皆属土，依次分别为 水库 火库 金库 木库 */
+/** 四库｜四墓（辰戌丑未）, 皆属土，依次分别为 水库 火库 金库 木库 */
 export type SikuName = NameConst<typeof SI_KU_NAME>
 export const SI_KU_NAME = ['辰', '戌', '丑', '未'] as const
 /** 获取地支的五行 */
-export const getZhiWuxing = (name: Zhi['name'], index: Zhi['index']): WuXing => {
-  const offset = -2 + 12
+export const getZhiWuxing = (index: Zhi['index']): WuXing => {
+  // 子丑为冬寅为春，通过四季定五行
+  const offsetIndex = (-2 + 12 + index) % 12
+  // 三个月为一季，季末为土， 寅卯辰 offsetIndex 0,1,2
+  const isTu = offsetIndex % 3 === 2
+  // 一年四季，春夏秋冬, 五行为木火土金水，夏季后为秋金
+  let seasonIndex = Math.floor(offsetIndex / 3) % 4
+  seasonIndex = seasonIndex >= 2 ? seasonIndex + 1 : seasonIndex
 
-  let wuxingIndex = (Math.floor((index + offset) / 3) % 4) % 12
-
-  if (isSiku(name)) {
-    wuxingIndex = 2
-  } else if (wuxingIndex >= 2) {
-    wuxingIndex++
-  }
+  const wuxingIndex = isTu ? 2 : seasonIndex
+  console.log(index, offsetIndex, isTu, wuxingIndex)
 
   return wuxings[wuxingIndex]
 }
@@ -152,26 +157,42 @@ export const isZhengZhi = (name: Zhi['name']): boolean => ZHENG_ZHI_NAME.include
 export const isSiYu = (name: Zhi['name']): boolean => SI_YU_NAME.includes(name as SiyuName)
 /** 判断是否属于四库 */
 export const isSiku = (name: Zhi['name']): boolean => SI_KU_NAME.includes(name as SikuName)
-/** 十二地支 */
+
 /** 地支接口 */
 export type Zhi = IndexField<{
   name: ZhiName
+  yinYang: YinYang
   wuxing: WuXing
-  direction: Direction
-  season: Season
-  animal: Animal
+  season: SeasonName
+  animal: AnimalName
 }>
+/** 十二地支 */
 export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
-  return {
+  const zhi = {
+    ...generateNamesProp(
+      {
+        animal: ANIMAL_NAME,
+      },
+      index
+    ),
     name,
     index,
     yinYang: yinYangs[(index + 1) % 2],
-    wuxing: getZhiWuxing(name, index),
-    direction: directions[Math.floor(index + 2) % 5],
-    season: seasons[Math.floor((index + 2) % 3) % 4],
-    animal: animals[index % 12],
-  }
+    wuxing: getZhiWuxing(index),
+    season: [...SEASON_NAME][Math.floor(((index - 2 + 12) % 12) / 3)],
+  } as Zhi
+
+  return zhi
 })
+console.log('十二地支：', zhis)
+
+/** 获取十神 */
+export type Shishen = TargetField<{
+  name: GanName | ZhiName
+  targetName: GanName | ZhiName
+  forTarget?: GanZhiShishen
+  forMe?: GanZhiShishen
+}>
 
 /** 纳音五行 */
 export type GanZhiName = (typeof NAYIN_WUXING)[number][0 | 1]
@@ -214,9 +235,6 @@ export const NAYIN_WUXING = [
   ['庚申', '辛酉', '石榴木'],
   ['壬戌', '癸亥', '大海水'],
 ] as const
-/** 十二长生 */
-export type TwelveLongLifeName = NameConst<typeof TWELVE_LONG_LIFE_NAME>
-export const TWELVE_LONG_LIFE_NAME = ['长生', '沐浴', '冠带', '临官', '帝旺', '衰', '病', '死', '墓', '绝', '胎', '养'] as const
 
 /** 获取干支纳音 */
 export const getNianYin = (name: GanZhiName): NayinName => {
@@ -269,17 +287,6 @@ export const generateSixtyJiaZi = (): GanZhi[] => {
 }
 /** 六十干支 */
 export const SIXTY_JIAZI: GanZhi[] = generateSixtyJiaZi()
-
-/** 获取十神 */
-export type Shishen = TargetField<{
-  name: GanName | ZhiName
-  targetName: GanName | ZhiName
-  forTarget?: GanZhiShishen
-  forMe?: GanZhiShishen
-}>
-export function getShishen(this: Gan | Zhi, target: Gan | Zhi): Shishen | undefined {
-  return undefined
-}
 
 /** 获取年的天干 */
 export const getYearGan = (year: number): Gan => {

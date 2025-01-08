@@ -71,15 +71,6 @@ export const SOLAR_TERM = [
   '大寒',
 ] as const
 
-/** 四季 */
-export type Season = IndexField<{
-  name: SeasonName
-}>
-export const seasons: Season[] = SEASON_NAME.map((name, index) => ({
-  index,
-  name,
-}))
-
 /** 获取闰月月份 */
 export const getLeapMonth = (lunarInfo: number): number => lunarInfo & 0xf
 
