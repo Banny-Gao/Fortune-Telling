@@ -3,10 +3,13 @@ import { SOLAR_TERM, seasons, getSolarTerms, getSolarAndLunarDate } from '../dat
 import { animals, directions } from '../constant'
 import { lcm } from '../utils/math'
 import { getRelation } from '../global'
+import { SHISHEN_NAME } from './shishen'
 
 import type { LunarDate } from '../date'
 import type { WuXing, YinYang, WuXingName } from '../wuxing'
-import type { Direction } from '../constant'
+import type { Direction, Animal } from '../constant'
+import type { Season } from '../date'
+import type { GanZhiShishen } from './shishen'
 
 /** 十天干 */
 export type GanName = NameConst<typeof GAN_NAME>
@@ -153,6 +156,10 @@ export const isSiku = (name: Zhi['name']): boolean => SI_KU_NAME.includes(name a
 /** 地支接口 */
 export type Zhi = IndexField<{
   name: ZhiName
+  wuxing: WuXing
+  direction: Direction
+  season: Season
+  animal: Animal
 }>
 export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
   return {
@@ -167,7 +174,6 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
 })
 
 /** 纳音五行 */
-/** 干支接口 */
 export type GanZhiName = (typeof NAYIN_WUXING)[number][0 | 1]
 export type NayinName = (typeof NAYIN_WUXING)[number][2]
 export type GanZhi = IndexField<{
@@ -264,6 +270,17 @@ export const generateSixtyJiaZi = (): GanZhi[] => {
 /** 六十干支 */
 export const SIXTY_JIAZI: GanZhi[] = generateSixtyJiaZi()
 
+/** 获取十神 */
+export type Shishen = TargetField<{
+  name: GanName | ZhiName
+  targetName: GanName | ZhiName
+  forTarget?: GanZhiShishen
+  forMe?: GanZhiShishen
+}>
+export function getShishen(this: Gan | Zhi, target: Gan | Zhi): Shishen | undefined {
+  return undefined
+}
+
 /** 获取年的天干 */
 export const getYearGan = (year: number): Gan => {
   const index = (year - 4) % 10
@@ -340,7 +357,7 @@ export const getHourGan = (lunarDate: LunarDate, dayGan: Gan): Gan => {
 export const getHourZhi = (lunarDate: LunarDate): Zhi => {
   return zhis[getZhiShiIndex(lunarDate.hour)]
 }
-/** 获取八字 */
+
 /** 八字接口 */
 export interface Bazi {
   sizhu: GanZhi[]
@@ -348,6 +365,8 @@ export interface Bazi {
   dizhi: Zhi[]
   canggan?: Gan[]
 }
+
+/** 获取八字 */
 export const getBazi = async (date: Date, address?: number | string): Promise<Bazi> => {
   console.log('十天干：', gans)
   const lunarDate = await getSolarAndLunarDate(date, address)
