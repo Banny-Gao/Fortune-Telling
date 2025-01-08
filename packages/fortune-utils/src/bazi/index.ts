@@ -168,7 +168,25 @@ export type ZhiHe = TargetField<{
   huaTwo?: WuXing
   description: ZhiHeDescription
 }>
-export function zhiHe(this: Zhi, target: Zhi | ZhiName): ZhiHe | undefined {
+
+export const getZhiHeTargetIndexByFingerPosition = ([x, y]: FingerPosition): number => FINGER_POSITION.findIndex(([tx, ty]) => tx === -x && ty === y)
+export const getZhiHeTargetNameByWuxing = (zhi: Zhi): ZhiName => {
+  const { wuxing, yinYang } = zhi
+  const targetWuxing = wuxing.ke
+  const targetYinYang = yinYang.opposite
+
+  return ZHI_NAME.find((name, index) => {
+    const wuxing = getZhiWuxing(index)
+    const yinYang = getZhiYinYang(index)
+
+    return wuxing.name === targetWuxing.name && yinYang.name === targetYinYang?.name
+  }) as ZhiName
+}
+
+export function zhiHe(this: Zhi, target?: Zhi | ZhiName): ZhiHe | undefined {
+  const targetIndex = getZhiHeTargetIndexByFingerPosition(this.fingerPosition)
+  target ??= ZHI_NAME[targetIndex]
+
   const transform = ([_, _name2, huas, description]: string[]): Required<Omit<ZhiHe, keyof TargetField>> => {
     const [hua, huaTwo] = huas.split('/')
     return {
@@ -195,6 +213,9 @@ export const SI_YU_NAME = ['寅', '申', '巳', '亥'] as const
 /** 四库｜四墓（辰戌丑未）, 皆属土，依次分别为 水库 火库 金库 木库 */
 export type SikuName = NameConst<typeof SI_KU_NAME>
 export const SI_KU_NAME = ['辰', '戌', '丑', '未'] as const
+
+/** 获取地支的阴阳 */
+export const getZhiYinYang = (index: Zhi['index']): YinYang => yinYangs[(index + 1) % 2]
 /** 获取地支的五行 */
 export const getZhiWuxing = (index: Zhi['index']): WuXing => {
   // 子丑为冬寅为春，通过四季定五行
@@ -223,6 +244,7 @@ export type Zhi = IndexField<{
   wuxing: WuXing
   season: SeasonName
   animal: AnimalName
+  fingerPosition: FingerPosition
   HE: typeof zhiHe
   he: ReturnType<typeof zhiHe>
 }>
@@ -233,22 +255,24 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
       {
         animal: ANIMAL_NAME,
         geo: GEO_NAME,
+        fingerPosition: FINGER_POSITION,
       },
       index
     ),
     name,
     index,
-    yinYang: yinYangs[(index + 1) % 2],
+    yinYang: getZhiYinYang(index),
     wuxing: getZhiWuxing(index),
     season: [...SEASON_NAME][Math.floor(((index - 2 + 12) % 12) / 3)],
     HE: zhiHe,
   } as Zhi
   //  掌诀 横合 竖害 斜冲
-  zhi.he = zhiHe.call(zhi, ZHI_NAME[(zhi.index + 1) % 12])
+  zhi.he = zhiHe.call(zhi)
 
   return zhi
 })
 console.log('十二地支：', zhis)
+console.log(getZhiHeTargetNameByWuxing(zhis[0]))
 
 /** 获取十神 */
 export type Shishen = TargetField<{

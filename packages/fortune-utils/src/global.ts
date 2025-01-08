@@ -9,8 +9,7 @@ declare global {
     value: number | string
   }
   export type OptionField<T extends Option = Option> = {
-    name: T['name']
-    value: T['value']
+    [key in keyof T]: T[key]
   }
 
   export type IndexField<T = object> = BasicField<T> & {
@@ -71,20 +70,18 @@ export function getRelation<T extends TargetField, S extends IndexField>(this: S
 
 /** 通用函数生成 */
 export const generateRelation = <T extends IndexField, S extends IndexField>(nameArray: string[], condition: (this: S, targetIndex: number) => boolean) =>
-  function (this: S, target: T | T['name']): TargetField | undefined {
-    const targetIndex = getTargetIndex<T | T['name']>(target, nameArray)
-
-    if (targetIndex === undefined) return
+  function (this: S, target: T | T['name']): TargetField {
+    const targetIndex = getTargetIndex<T | T['name']>(target, nameArray) as number
 
     return getRelation.bind(this)({
       target: target as unknown as S | S['name'],
       nameArray,
       condition: () => condition.call(this, targetIndex),
-    })
+    }) as TargetField
   }
 
 /** 批量生成 name const */
-export const generateNamesProp = <T extends Record<string, readonly string[]>>(props: T, index: number): Record<string, T[keyof T][number]> =>
+export const generateNamesProp = <T extends Record<string, readonly unknown[]>>(props: T, index: number): Record<string, T[keyof T][number]> =>
   Object.entries(props).reduce<Record<string, T[keyof T][number]>>((acc, [key, value]) => {
     acc[key] = value[index]
     return acc

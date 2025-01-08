@@ -4,6 +4,7 @@ import { generateRelation, getObjectByName, generateNamesProp } from './global'
 export type YinYang = OptionField<{
   name: YinYangName
   value: YinYangValue
+  opposite?: YinYang
 }>
 export type YinYangName = NameConst<typeof YIN_YANG_NAME>
 export type YinYangValue = -1 | 1
@@ -11,6 +12,10 @@ export const YIN_YANG_NAME = ['阴', '阳'] as const
 export const yinYangs: YinYang[] = YIN_YANG_NAME.map<YinYang>((name, index) => ({
   name,
   value: index === 0 ? -1 : 1,
+  opposite: {
+    name: index === 0 ? '阳' : '阴',
+    value: index === 0 ? 1 : -1,
+  },
 }))
 
 /** 五行 */
