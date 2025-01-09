@@ -27,7 +27,8 @@ export type GanHe = TargetField<{
   hua?: WuXing
 }>
 /** thisArg, 不可为箭头函数 */
-export function ganHe(this: Gan, target: Gan | GanName): GanHe | undefined {
+export function ganHe(this: Gan, target?: Gan | GanName): GanHe | undefined {
+  target ??= GAN_NAME[(this.index + 5) % 10]
   const transform = ([_, _name2, hua, description]: string[]): Required<Omit<GanHe, keyof TargetField>> =>
     ({
       description: description as GanHeDescription,
@@ -53,7 +54,8 @@ export type GanChong = TargetField<{
   name: GanName
   targetName: GanName
 }>
-export function ganChong(this: Gan, target: Gan | GanName): GanChong | undefined {
+export function ganChong(this: Gan, target?: Gan | GanName): GanChong | undefined {
+  target ??= GAN_NAME[(this.index + 6) % 10]
   return getRelation.call(this, {
     target,
     nameArray: [...GAN_NAME],
@@ -132,7 +134,53 @@ export const ANIMAL_NAME = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '�
 export type GeoName = NameConst<typeof GEO_NAME>
 export const GEO_NAME = ['墨池', '柳岸', '广谷', '琼林', '草泽', '大驿', '烽堠', '花园', '名都', '寺钟', '烧原', '悬河'] as const
 
-/** 掌诀 原点为中指末关节和无名指末关节中间
+/** 地支三会 */
+export const ZHI_SAN_HUI = [
+  ['寅', '卯', '辰', '木'],
+  ['巳', '午', '未', '火'],
+  ['申', '酉', '戌', '金'],
+  ['亥', '子', '丑', '水'],
+] as const
+export type ZhihuiDescription = (typeof ZHI_SAN_HUI)[number][3]
+export type Zhihui = {
+  index: number
+  name: ZhiName
+  targetNames: ZhiName[]
+  wuxing: WuXing
+  description: ZhihuiDescription
+}
+export function zhiHui(this: Zhi): Zhihui | undefined {
+  for (const item of ZHI_SAN_HUI) {
+    const [hua, ...targetNames] = [...item].reverse()
+    if (targetNames.includes(this.name)) {
+      return {
+        index: this.index,
+        name: this.name,
+        targetNames: targetNames.filter(name => name !== this.name) as ZhiName[],
+        wuxing: getWuXing(hua as WuXingName) as WuXing,
+        description: hua as ZhihuiDescription,
+      }
+    }
+  }
+}
+/** 四正|四旺（子午卯酉）旺：水火木金 */
+export type SizhengName = NameConst<typeof ZHENG_ZHI_NAME>
+export const ZHENG_ZHI_NAME = ['子', '午', '卯', '酉'] as const
+/** 四隅|四长生（寅申巳亥）长生：火水金木 */
+export type SiyuName = NameConst<typeof SI_YU_NAME>
+export const SI_YU_NAME = ['寅', '申', '巳', '亥'] as const
+/** 四库｜四墓（辰戌丑未）, 皆属土 墓： 水 火 金 木 */
+export type SikuName = NameConst<typeof SI_KU_NAME>
+export const SI_KU_NAME = ['辰', '戌', '丑', '未'] as const
+
+/** 判断是否属于四正 */
+export const isSiZheng = (name: Zhi['name']): boolean => ZHENG_ZHI_NAME.includes(name as SizhengName)
+/** 判断是否属于四隅 */
+export const isSiYu = (name: Zhi['name']): boolean => SI_YU_NAME.includes(name as SiyuName)
+/** 判断是否属于四库 */
+export const isSiku = (name: Zhi['name']): boolean => SI_KU_NAME.includes(name as SikuName)
+
+/** 掌诀 原点为 中指末关节 和 无名指末关节 中间
  * 子: [1, 0] 丑: [-1, 0]
  */
 export type FingerPosition = (typeof FINGER_POSITION)[number]
@@ -170,18 +218,19 @@ export type ZhiHe = TargetField<{
 }>
 
 export const getZhiHeTargetIndexByFingerPosition = ([x, y]: FingerPosition): number => FINGER_POSITION.findIndex(([tx, ty]) => tx === -x && ty === y)
-export const getZhiHeTargetNameByWuxing = (zhi: Zhi): ZhiName => {
-  const { wuxing, yinYang } = zhi
-  const targetWuxing = wuxing.ke
-  const targetYinYang = yinYang.opposite
-
-  return ZHI_NAME.find((name, index) => {
-    const wuxing = getZhiWuxing(index)
-    const yinYang = getZhiYinYang(index)
-
-    return wuxing.name === targetWuxing.name && yinYang.name === targetYinYang?.name
-  }) as ZhiName
-}
+// export const getZhiHeTargetNameByWuxing = (zhi: Zhi): ZhiName => {
+//   const { name, wuxing, yinYang } = zhi
+//   /**
+//    * 四正 四库 合
+//    *
+//    */
+//   if (isSiZheng(name) || isSiku(name)) {
+//     return
+//   }
+//   if (isSiYu(name)) {
+//     return
+//   }
+// }
 
 export function zhiHe(this: Zhi, target?: Zhi | ZhiName): ZhiHe | undefined {
   const targetIndex = getZhiHeTargetIndexByFingerPosition(this.fingerPosition)
@@ -204,16 +253,6 @@ export function zhiHe(this: Zhi, target?: Zhi | ZhiName): ZhiHe | undefined {
   }) as ZhiHe
 }
 
-/** 四正|四旺（子午卯酉） */
-export type SizhengName = NameConst<typeof ZHENG_ZHI_NAME>
-export const ZHENG_ZHI_NAME = ['子', '午', '卯', '酉'] as const
-/** 四隅|四长生（寅申巳亥） */
-export type SiyuName = NameConst<typeof SI_YU_NAME>
-export const SI_YU_NAME = ['寅', '申', '巳', '亥'] as const
-/** 四库｜四墓（辰戌丑未）, 皆属土，依次分别为 水库 火库 金库 木库 */
-export type SikuName = NameConst<typeof SI_KU_NAME>
-export const SI_KU_NAME = ['辰', '戌', '丑', '未'] as const
-
 /** 获取地支的阴阳 */
 export const getZhiYinYang = (index: Zhi['index']): YinYang => yinYangs[(index + 1) % 2]
 /** 获取地支的五行 */
@@ -230,12 +269,6 @@ export const getZhiWuxing = (index: Zhi['index']): WuXing => {
 
   return wuxings[wuxingIndex]
 }
-/** 判断是否属于四正 */
-export const isZhengZhi = (name: Zhi['name']): boolean => ZHENG_ZHI_NAME.includes(name as SizhengName)
-/** 判断是否属于四隅 */
-export const isSiYu = (name: Zhi['name']): boolean => SI_YU_NAME.includes(name as SiyuName)
-/** 判断是否属于四库 */
-export const isSiku = (name: Zhi['name']): boolean => SI_KU_NAME.includes(name as SikuName)
 
 /** 地支接口 */
 export type Zhi = IndexField<{
@@ -247,6 +280,7 @@ export type Zhi = IndexField<{
   fingerPosition: FingerPosition
   HE: typeof zhiHe
   he: ReturnType<typeof zhiHe>
+  hui: ReturnType<typeof zhiHui>
 }>
 /** 十二地支 */
 export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
@@ -268,11 +302,13 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
   } as Zhi
   //  掌诀 横合 竖害 斜冲
   zhi.he = zhiHe.call(zhi)
+  // 地支三会
+  zhi.hui = zhiHui.call(zhi)
 
   return zhi
 })
 console.log('十二地支：', zhis)
-console.log(getZhiHeTargetNameByWuxing(zhis[0]))
+// console.log(getZhiHeTargetNameByWuxing(zhis[2]))
 
 /** 获取十神 */
 export type Shishen = TargetField<{
