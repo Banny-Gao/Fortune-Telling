@@ -133,35 +133,21 @@ export const ANIMAL_NAME = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '�
 /** 地理 */
 export type GeoName = NameConst<typeof GEO_NAME>
 export const GEO_NAME = ['墨池', '柳岸', '广谷', '琼林', '草泽', '大驿', '烽堠', '花园', '名都', '寺钟', '烧原', '悬河'] as const
+/** 获取地支的阴阳 */
+export const getZhiYinYang = (index: Zhi['index']): YinYang => yinYangs[(index + 1) % 2]
+/** 获取地支的五行 */
+export const getZhiWuxing = (index: Zhi['index']): WuXing => {
+  // 子丑为冬寅为春，通过四季定五行
+  const offsetIndex = (-2 + 12 + index) % 12
+  // 三个月为一季，季末为土， 寅卯辰 offsetIndex 0,1,2
+  const isTu = offsetIndex % 3 === 2
+  // 一年四季，春夏秋冬, 五行为木火土金水，夏季后为秋金
+  let seasonIndex = Math.floor(offsetIndex / 3) % 4
+  seasonIndex = seasonIndex >= 2 ? seasonIndex + 1 : seasonIndex
 
-/** 地支三会 */
-export const ZHI_SAN_HUI = [
-  ['寅', '卯', '辰', '木'],
-  ['巳', '午', '未', '火'],
-  ['申', '酉', '戌', '金'],
-  ['亥', '子', '丑', '水'],
-] as const
-export type ZhihuiDescription = (typeof ZHI_SAN_HUI)[number][3]
-export type Zhihui = {
-  index: number
-  name: ZhiName
-  targetNames: ZhiName[]
-  wuxing: WuXing
-  description: ZhihuiDescription
-}
-export function zhiHui(this: Zhi): Zhihui | undefined {
-  for (const item of ZHI_SAN_HUI) {
-    const [hua, ...targetNames] = [...item].reverse()
-    if (targetNames.includes(this.name)) {
-      return {
-        index: this.index,
-        name: this.name,
-        targetNames: targetNames.filter(name => name !== this.name) as ZhiName[],
-        wuxing: getWuXing(hua as WuXingName) as WuXing,
-        description: hua as ZhihuiDescription,
-      }
-    }
-  }
+  const wuxingIndex = isTu ? 2 : seasonIndex
+
+  return wuxings[wuxingIndex]
 }
 /** 四正|四旺（子午卯酉）旺：水火木金 */
 export type SizhengName = NameConst<typeof ZHENG_ZHI_NAME>
@@ -179,6 +165,52 @@ export const isSiZheng = (name: Zhi['name']): boolean => ZHENG_ZHI_NAME.includes
 export const isSiYu = (name: Zhi['name']): boolean => SI_YU_NAME.includes(name as SiyuName)
 /** 判断是否属于四库 */
 export const isSiku = (name: Zhi['name']): boolean => SI_KU_NAME.includes(name as SikuName)
+/** 获取三个地支的关系 */
+const reflectionOfThree = <T extends readonly (readonly string[])[], M extends RelationField<Zhi, string>>(zhi: Zhi, nameArray: T): M | undefined => {
+  for (const item of nameArray) {
+    const [hua, ...targetNames] = [...item].reverse()
+    if (targetNames.includes(zhi.name)) {
+      return {
+        index: zhi.index,
+        name: zhi.name,
+        targetNames: targetNames.filter(name => name !== zhi.name) as ZhiName[],
+        wuxing: getWuXing(hua as WuXingName) as WuXing,
+        description: hua,
+      } as M
+    }
+  }
+}
+type RelationField<T extends IndexField, D> = {
+  index: number
+  name: T['name']
+  targetNames: T['name'][]
+  wuxing: WuXing
+  description: D
+}
+/** 地支三会 */
+export const ZHI_SAN_HUI = [
+  ['寅', '卯', '辰', '木'],
+  ['巳', '午', '未', '火'],
+  ['申', '酉', '戌', '金'],
+  ['亥', '子', '丑', '水'],
+] as const
+export type ZhihuiDescription = (typeof ZHI_SAN_HUI)[number][3]
+export type Zhihui = RelationField<Zhi, ZhihuiDescription>
+export function zhiHui(this: Zhi): Zhihui | undefined {
+  return reflectionOfThree(this, [...ZHI_SAN_HUI])
+}
+/** 地支三合 */
+export const ZHI_SAN_HE = [
+  ['申', '子', '辰', '水'],
+  ['寅', '午', '戌', '火'],
+  ['巳', '酉', '丑', '金'],
+  ['亥', '卯', '未', '木'],
+] as const
+export type ZhiSanHeDescription = (typeof ZHI_SAN_HE)[number][3]
+export type ZhiSanHe = RelationField<Zhi, ZhiSanHeDescription>
+export function zhiSanHe(this: Zhi): ZhiSanHe | undefined {
+  return reflectionOfThree(this, [...ZHI_SAN_HE])
+}
 
 /** 掌诀 原点为 中指末关节 和 无名指末关节 中间
  * 子: [1, 0] 丑: [-1, 0]
@@ -253,23 +285,6 @@ export function zhiHe(this: Zhi, target?: Zhi | ZhiName): ZhiHe | undefined {
   }) as ZhiHe
 }
 
-/** 获取地支的阴阳 */
-export const getZhiYinYang = (index: Zhi['index']): YinYang => yinYangs[(index + 1) % 2]
-/** 获取地支的五行 */
-export const getZhiWuxing = (index: Zhi['index']): WuXing => {
-  // 子丑为冬寅为春，通过四季定五行
-  const offsetIndex = (-2 + 12 + index) % 12
-  // 三个月为一季，季末为土， 寅卯辰 offsetIndex 0,1,2
-  const isTu = offsetIndex % 3 === 2
-  // 一年四季，春夏秋冬, 五行为木火土金水，夏季后为秋金
-  let seasonIndex = Math.floor(offsetIndex / 3) % 4
-  seasonIndex = seasonIndex >= 2 ? seasonIndex + 1 : seasonIndex
-
-  const wuxingIndex = isTu ? 2 : seasonIndex
-
-  return wuxings[wuxingIndex]
-}
-
 /** 地支接口 */
 export type Zhi = IndexField<{
   name: ZhiName
@@ -281,6 +296,7 @@ export type Zhi = IndexField<{
   HE: typeof zhiHe
   he: ReturnType<typeof zhiHe>
   hui: ReturnType<typeof zhiHui>
+  sanHe: ReturnType<typeof zhiSanHe>
 }>
 /** 十二地支 */
 export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
@@ -304,6 +320,8 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
   zhi.he = zhiHe.call(zhi)
   // 地支三会
   zhi.hui = zhiHui.call(zhi)
+  // 地支三合
+  zhi.sanHe = zhiSanHe.call(zhi)
 
   return zhi
 })
