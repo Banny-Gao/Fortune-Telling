@@ -1,3 +1,6 @@
+import type { GanName } from './gan'
+import type { ZhiName } from './zhi'
+
 /** 十神 */
 export type GanZhiShishenName = (typeof SHISHEN_NAME)[number][number]
 export const SHISHEN_NAME = [
@@ -41,3 +44,11 @@ export type Zhengcai = BasicField<{
   name: GetShishenType<4, 1>
 }>
 export type GanZhiShishen = Bijian | Jiecai | PianYin | ZhengYin | Qisha | Shangguan | Piancai | Zhengcai
+
+/** 获取十神 */
+export type TargetShishen = TargetField<{
+  name: GanName | ZhiName
+  targetName: GanName | ZhiName
+  forTarget?: GanZhiShishen
+  forMe?: GanZhiShishen
+}>
