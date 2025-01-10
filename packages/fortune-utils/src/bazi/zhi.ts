@@ -192,7 +192,7 @@ const getZhongQi = (zhi: Zhi): QiName => {
   // 本支四长生，中气五行为我生，取阳
   const isSiChangSheng = isSiYu(zhi.name)
   if (isSiChangSheng) {
-    // 巳火为阴火，火生土，土生金
+    // 巳火为阴火,土皆为墓库，生土不合适，火土同宫，所以这里看做土生金
     const targetName = equalName(zhi, '巳') ? '金' : wuxing.sheng.targetName
     return gans.find(gan => equalName(gan.wuxing, targetName as WuXingName) && equalName(gan.yinYang, '阳'))?.name as QiName
   }
