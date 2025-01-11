@@ -7,6 +7,7 @@ import { getRelation, generateNamesProp, equalName } from '../global'
 import type { WuXing, YinYang, WuXingName } from '../wuxing'
 import type { SeasonName } from '../date'
 import type { GanName } from './gan'
+
 /** 十二地支 */
 export type ZhiName = NameConst<typeof ZHI_NAME>
 export const ZHI_NAME = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
@@ -114,8 +115,77 @@ export type ZhiSanHe = RelationField<Zhi, ZhiSanHeDescription>
 export function zhiSanHe(this: Zhi): ZhiSanHe | undefined {
   return reflectionOfThree(this, [...ZHI_SAN_HE])
 }
+/** 地支半合 */
+export const SHENG_WANG = [
+  ['寅', '午', '火'],
+  ['申', '子', '水'],
+  ['巳', '酉', '金'],
+  ['亥', '卯', '木'],
+] as const
+export const MU_WANG = [
+  ['子', '辰', '水'],
+  ['午', '戌', '火'],
+  ['酉', '丑', '金'],
+  ['卯', '未', '木'],
+] as const
+export const SHENG_MU = [
+  ['申', '辰', '水'],
+  ['寅', '戌', '火'],
+  ['巳', '丑', '金'],
+  ['亥', '未', '木'],
+] as const
+enum ZhiBanHeDescription {
+  ShengWang = '生旺半合',
+  MuWang = '墓旺半合',
+  ShengMu = '生墓拱合',
+}
+export type ZhiBanHe = TargetField<{
+  name: ZhiName
+  targetName: ZhiName
+  wuxing: WuXing
+  description: ZhiBanHeDescription
+}>
+export function zhiBanHe(this: Zhi, target?: Zhi | ZhiName): ZhiBanHe | [ZhiBanHe, ZhiBanHe] | undefined {
+  const groups = [...SHENG_WANG.slice(0, 2), ...MU_WANG.slice(0, 2), ...SHENG_MU.slice(0, 2)] as unknown as [ZhiName, ZhiName][]
+  const getTargetName = (item: readonly ZhiName[]): ZhiName => {
+    const [name1, name2] = item
+    return name1 === this.name ? name2 : name1
+  }
+
+  if (!target) {
+    const targetNames = groups
+      .filter(item => item.includes(this.name))
+      .map(getTargetName)
+      .flat() as ZhiName[]
+    return targetNames.map(name => zhiBanHe.call(this, name)) as [ZhiBanHe, ZhiBanHe]
+  }
+  const isEqual = (a: readonly (readonly string[])[], b: ZhiName[]): boolean => a.some(item => item.slice(0, 2).sort().toString() === b.sort().toString())
+
+  const isShengwang = (names: ZhiName[]): boolean => isEqual(SHENG_WANG, names)
+  const isMuwang = (names: ZhiName[]): boolean => isEqual(MU_WANG, names)
+  const isShengmu = (names: ZhiName[]): boolean => isEqual(SHENG_MU, names)
+  const getDescription = (names: ZhiName[]): ZhiBanHeDescription | undefined => {
+    if (isShengwang(names)) return ZhiBanHeDescription.ShengWang
+    if (isMuwang(names)) return ZhiBanHeDescription.MuWang
+    if (isShengmu(names)) return ZhiBanHeDescription.ShengMu
+    return undefined
+  }
+
+  const transform = ([name1, name2, hua]: string[]): Required<Omit<ZhiBanHe, keyof TargetField>> =>
+    ({
+      description: getDescription([name1, name2] as ZhiName[]),
+      wuxing: getWuXing(hua as WuXingName) as WuXing,
+    }) as Required<Omit<ZhiBanHe, keyof TargetField>>
+
+  return getRelation.call(this, {
+    target,
+    nameArray: [...ZHI_NAME],
+    relationArray: [...SHENG_WANG, ...MU_WANG, ...SHENG_MU].map(item => [...item]),
+    transform,
+  }) as ZhiBanHe
+}
 /** 地支藏干 */
-export const CANG_GAN = [
+export const CANG_GAN_NAME = [
   ['子', '癸', null, null],
   ['丑', '己', '辛', '癸'],
   ['寅', '甲', '丙', '戊'],
@@ -291,6 +361,9 @@ export type Zhi = IndexField<{
   he: ReturnType<typeof zhiHe>
   hui: ReturnType<typeof zhiHui>
   sanHe: ReturnType<typeof zhiSanHe>
+  SAN_HE: typeof zhiSanHe
+  banHe: ReturnType<typeof zhiBanHe>
+  BAN_HE: typeof zhiBanHe
   CANG_GAN: typeof getZhiCangGan
   cangGan: ReturnType<typeof getZhiCangGan>
 }>
@@ -311,6 +384,8 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
     wuxing: getZhiWuxing(index),
     season: [...SEASON_NAME][Math.floor(((index - 2 + 12) % 12) / 3)],
     HE: zhiHe,
+    BAN_HE: zhiBanHe,
+    SAN_HE: zhiSanHe,
     CANG_GAN: getZhiCangGan,
   } as Zhi
   //  掌诀 横合 竖害 斜冲
@@ -319,6 +394,8 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
   zhi.hui = zhiHui.call(zhi)
   // 地支三合
   zhi.sanHe = zhiSanHe.call(zhi)
+  // 地支半合
+  zhi.banHe = zhiBanHe.call(zhi)
   // 地支藏干
   zhi.cangGan = getZhiCangGan.call(zhi)
 
