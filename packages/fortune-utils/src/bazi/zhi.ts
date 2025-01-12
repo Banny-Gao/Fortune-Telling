@@ -78,7 +78,7 @@ const reflectionOfThree = <T extends readonly (readonly string[])[], M extends R
         index: zhi.index,
         name: zhi.name,
         targetNames: targetNames.filter(name => name !== zhi.name) as ZhiName[],
-        wuxing: getWuXing(hua as WuXingName) as WuXing,
+        hua: getWuXing(hua as WuXingName) as WuXing,
         description: hua,
       } as M
     }
@@ -88,7 +88,7 @@ type RelationField<T extends IndexField, D> = {
   index: number
   name: T['name']
   targetNames: T['name'][]
-  wuxing: WuXing
+  hua: WuXing
   description: D
 }
 /** 地支三会 */
@@ -312,25 +312,29 @@ export type ZhiHe = TargetField<{
   huaTwo?: WuXing
   description: ZhiHeDescription
 }>
-
+/** 掌诀获取索引 */
 export const getZhiHeTargetIndexByFingerPosition = ([x, y]: FingerPosition): number => FINGER_POSITION.findIndex(([tx, ty]) => tx === -x && ty === y)
-// export const getZhiHeTargetNameByWuxing = (zhi: Zhi): ZhiName => {
-//   const { name, wuxing, yinYang } = zhi
-//   /**
-//    * 四正 四库 合
-//    *
-//    */
-//   if (isSiZheng(name) || isSiku(name)) {
-//     return
-//   }
-//   if (isSiYu(name)) {
-//     return
-//   }
-// }
+/** 三合中看六合 */
+export const getZhiHeTargetName = (zhi: Zhi): ZhiName => {
+  /**
+   * 六合可从三合局看
+   * 我为阳，合者局生助我局，我为阴，我生助合者局
+   * 长生自合，墓旺相合，均衡
+   */
+  const { name, yinYang } = zhi
+  const sanHe = zhiSanHe.call(zhi)
+  const hua = yinYang.name === '阳' ? sanHe?.hua.shengWo : sanHe?.hua.sheng
+  const targetSanhe = [...ZHI_SAN_HE].find(item => item[3] === hua?.targetName)
+  const i = isSiYu(name) ? 0 : isSiZheng(name) ? 2 : 1
+
+  return targetSanhe?.[i] as ZhiName
+}
 
 export function zhiHe(this: Zhi, target?: Zhi | ZhiName): ZhiHe | undefined {
-  const targetIndex = getZhiHeTargetIndexByFingerPosition(this.fingerPosition)
-  target ??= ZHI_NAME[targetIndex]
+  // const targetIndex = getZhiHeTargetIndexByFingerPosition(this.fingerPosition)
+  // target ??= ZHI_NAME[targetIndex]
+  const targetName = getZhiHeTargetName(this)
+  target ??= targetName
 
   const transform = ([_, _name2, huas, description]: string[]): Required<Omit<ZhiHe, keyof TargetField>> => {
     const [hua, huaTwo] = huas.split('/')
@@ -402,4 +406,3 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
   return zhi
 })
 console.log('十二地支：', zhis)
-// console.log(getZhiHeTargetNameByWuxing(zhis[2]))
