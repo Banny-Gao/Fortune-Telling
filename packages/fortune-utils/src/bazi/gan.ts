@@ -9,11 +9,11 @@ export const GAN_NAME = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛',
 
 /** 天干五合 */
 export const GAN_HE = [
-  ['甲', '己', '土', '中正'],
-  ['乙', '庚', '金', '仁义'],
-  ['丙', '辛', '水', '威制'],
-  ['丁', '壬', '木', '淫慝'],
-  ['戊', '癸', '火', '无情'],
+  ['甲', '己', '土', '中正之合'],
+  ['乙', '庚', '金', '仁义之合'],
+  ['丙', '辛', '水', '威制之合'],
+  ['丁', '壬', '木', '淫慝之合'],
+  ['戊', '癸', '火', '无情之合'],
 ] as const
 export type GanHeDescription = (typeof GAN_HE)[number][3]
 export type GanHe = TargetField<{
@@ -38,7 +38,11 @@ export function ganHe(this: Gan, target?: Gan | GanName): GanHe | undefined {
   }) as GanHe
 }
 
-/** 天干相冲 */
+/**
+ * 天干相冲
+ * - 隔六位而冲
+ * - 从五行看，同性相冲，水火冲、金木冲
+ * */
 export const GAN_CHONG = [
   ['甲', '庚'],
   ['乙', '辛'],
