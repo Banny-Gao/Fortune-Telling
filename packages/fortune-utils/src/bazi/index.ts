@@ -61,6 +61,7 @@ export const getNianYin = (name: GanZhiName): NayinName => {
 
   return result as NayinName
 }
+
 /** 获取干支组合 */
 export const getGanZhiByIndex = (index: number): GanZhi => {
   const gan = gans[index % 10]
@@ -76,6 +77,7 @@ export const getGanZhiByIndex = (index: number): GanZhi => {
     nianYin,
   }
 }
+
 /** 根据干支名获取在六十干支中的索引 */
 export const getGanZhiIndexByName = (name: string): number => {
   const index = SIXTY_JIAZI.findIndex(jiazi => jiazi.name === name)
@@ -93,11 +95,13 @@ export const composeGanZhi = (gan: Gan, zhi: Zhi): GanZhi => {
     nianYin,
   }
 }
+
 /** 六十干支组合对象表 */
 export const generateSixtyJiaZi = (): GanZhi[] => {
   const length = lcm(GAN_NAME.length, ZHI_NAME.length)
   return Array.from({ length }, (_, i) => getGanZhiByIndex(i))
 }
+
 /** 六十干支 */
 export const SIXTY_JIAZI: GanZhi[] = generateSixtyJiaZi()
 
@@ -106,19 +110,23 @@ export const getYearGan = (year: number): Gan => {
   const index = (year - 4) % 10
   return gans[index]
 }
+
 /**获取年的地支 */
 export const getYearZhi = (year: number): Zhi => {
   const index = (year - 4) % 12
   return zhis[index]
 }
+
 /** 节气对应的月干偏移 */
 export const SOLAR_TERM_OFFSET: Record<string, number> = Object.fromEntries(SOLAR_TERM.map((term, index) => [term, Math.floor(index / 2)]))
+
 /** 获取某年某月某日节气的月干偏移 */
 export const getMonthGanOffset = (lunarDate: LunarDate): number => {
   const [currentSolarTerm] = getSolarTerms(lunarDate)
   const solarTermOffset = SOLAR_TERM_OFFSET[currentSolarTerm.name]
   return solarTermOffset
 }
+
 /** 获取农历某月某天所在的月的天干 */
 export const getMonthGan = (lunarDate: LunarDate, yearGan: Gan): Gan => {
   // 正月天干的序号
@@ -129,6 +137,7 @@ export const getMonthGan = (lunarDate: LunarDate, yearGan: Gan): Gan => {
   const index = (firstMonthGanIndex + monthOffset) % 10
   return gans[index]
 }
+
 /** 获取农历某月某天所在的月的地支 */
 export const getMonthZhi = (lunarDate: LunarDate): Zhi => {
   // 月干偏移
@@ -138,6 +147,7 @@ export const getMonthZhi = (lunarDate: LunarDate): Zhi => {
   const index = (monthOffset + 2) % 12
   return zhis[index]
 }
+
 /** 获取农历某月某天所在的日的干支 */
 export const getDayGanZhi = (lunarDate: LunarDate): GanZhi => {
   // 1900年1月1日的干支是"甲戌"，即第10个干支
@@ -166,13 +176,16 @@ export const getDayGanZhi = (lunarDate: LunarDate): GanZhi => {
 
   return SIXTY_JIAZI[jiaziIndex]
 }
+
 /** 获取时辰索引：23:00-00:59 为子时(0)，01:00-02:59 为丑时(1)，以此类推 */
 export const getZhiShiIndex = (hour: number): number => Math.floor(((hour + 1) % 24) / 2)
+
 /** 获取农历某月某天某时的天干：日上起时，五鼠遁 */
 export const getHourGan = (lunarDate: LunarDate, dayGan: Gan): Gan => {
   const hourIndex = getZhiShiIndex(lunarDate.hour)
   return gans[(dayGan.wushudun.targetIndex + hourIndex) % 10]
 }
+
 /** 获取农历某月某天某时的地支 */
 export const getHourZhi = (lunarDate: LunarDate): Zhi => {
   return zhis[getZhiShiIndex(lunarDate.hour)]

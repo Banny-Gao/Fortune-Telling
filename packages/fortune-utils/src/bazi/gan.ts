@@ -89,11 +89,10 @@ export type Gan = IndexField<{
   wushudun: TargetField
   /** 合 */
   he: ReturnType<typeof ganHe>
-  HE: typeof ganHe
   /** 冲 */
   chong: ReturnType<typeof ganChong>
-  CHONG: typeof ganChong
 }>
+
 /** 十天干 */
 export const gans: Gan[] = GAN_NAME.map((name, index) => {
   const gan = {
@@ -113,8 +112,6 @@ export const gans: Gan[] = GAN_NAME.map((name, index) => {
       targetName: GAN_NAME[(index % 5) * 2],
       targetIndex: (index % 5) * 2,
     },
-    HE: ganHe,
-    CHONG: ganChong,
   } as Gan
   gan.he = ganHe.call(gan)
   gan.chong = ganChong.call(gan)

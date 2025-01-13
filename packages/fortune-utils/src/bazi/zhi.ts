@@ -126,6 +126,7 @@ export function zhiSanHe(this: Zhi): ZhiSanHe | undefined {
   return reflectionOfThree(this, [...ZHI_SAN_HE])
 }
 
+/** 地支半合 */
 /** 生旺半合 */
 export const SHENG_WANG = [
   ['寅', '午', '火'],
@@ -366,12 +367,7 @@ export function zhiHe(this: Zhi, target?: Zhi | ZhiName): ZhiHe | undefined {
   }) as ZhiHe
 }
 
-/**
- * 地支六冲
- * - 取七位而冲
- * - 长生、帝旺、墓库自冲
- * - 从三合局看，同性相冲，水火冲、金木冲，与天干四冲相呼
- */
+/** 地支六冲*/
 export const ZHI_CHONG = [
   ['寅', '申'],
   ['巳', '亥'],
@@ -463,19 +459,13 @@ export type Zhi = IndexField<{
   season: SeasonName
   animal: AnimalName
   fingerPosition: FingerPosition
-  HE: typeof zhiHe
   he: ReturnType<typeof zhiHe>
   hui: ReturnType<typeof zhiHui>
   sanHe: ReturnType<typeof zhiSanHe>
-  SAN_HE: typeof zhiSanHe
   banHe: ReturnType<typeof zhiBanHe>
-  BAN_HE: typeof zhiBanHe
-  CANG_GAN: typeof getZhiCangGan
   cangGan: ReturnType<typeof getZhiCangGan>
   chong: ReturnType<typeof zhiChong>
-  CHONG: typeof zhiChong
   hai: ReturnType<typeof zhiHai>
-  HAI: typeof zhiHai
 }>
 /** 十二地支 */
 export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
@@ -493,12 +483,6 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
     yinYang: getZhiYinYang(index),
     wuxing: getZhiWuxing(index),
     season: [...SEASON_NAME][Math.floor(((index - 2 + 12) % 12) / 3)],
-    HE: zhiHe,
-    BAN_HE: zhiBanHe,
-    SAN_HE: zhiSanHe,
-    CANG_GAN: getZhiCangGan,
-    CHONG: zhiChong,
-    HAI: zhiHai,
   } as Zhi
   //  掌诀 横合 竖害 斜冲
   zhi.he = zhiHe.call(zhi)

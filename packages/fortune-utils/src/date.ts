@@ -5,9 +5,11 @@ import { getCurrentLoc, getLocation } from './utils/map'
 /** 四季 */
 export type SeasonName = NameConst<typeof SEASON_NAME>
 export const SEASON_NAME = ['春', '夏', '秋', '冬'] as const
+
 /** 农历月份 */
 export type LunarMonth = NameConst<typeof LUNAR_MONTH>
 export const LUNAR_MONTH = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'] as const
+
 /** 农历日期 */
 export type LunarDay = NameConst<typeof LUNAR_DAY>
 export const LUNAR_DAY = [
@@ -42,6 +44,7 @@ export const LUNAR_DAY = [
   '廿九',
   '三十',
 ] as const
+
 /** 二十四节气 */
 export type SolarTermName = NameConst<typeof SOLAR_TERM>
 export const SOLAR_TERM = [
