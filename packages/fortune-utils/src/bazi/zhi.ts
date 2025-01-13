@@ -129,17 +129,17 @@ export function zhiSanHe(this: Zhi): ZhiSanHe | undefined {
 /** 地支半合 */
 /** 生旺半合 */
 export const SHENG_WANG = [
-  ['寅', '午', '火'],
   ['申', '子', '水'],
-  ['巳', '酉', '金'],
+  ['寅', '午', '火'],
   ['亥', '卯', '木'],
+  ['巳', '酉', '金'],
 ] as const
 /** 墓旺半合 */
 export const MU_WANG = [
   ['子', '辰', '水'],
   ['午', '戌', '火'],
-  ['酉', '丑', '金'],
   ['卯', '未', '木'],
+  ['酉', '丑', '金'],
 ] as const
 /** 生墓拱合 */
 export const SHENG_MU = [
@@ -369,12 +369,12 @@ export function zhiHe(this: Zhi, target?: Zhi | ZhiName): ZhiHe | undefined {
 
 /** 地支六冲*/
 export const ZHI_CHONG = [
-  ['寅', '申'],
-  ['巳', '亥'],
   ['子', '午'],
+  ['丑', '未'],
+  ['寅', '申'],
   ['卯', '酉'],
   ['辰', '戌'],
-  ['丑', '未'],
+  ['巳', '亥'],
 ] as const
 export type ZhiChong = TargetField<{
   name: ZhiName
@@ -393,7 +393,7 @@ export function zhiChong(this: Zhi, target?: Zhi | ZhiName): ZhiChong | undefine
  * 地支相穿(害)
  * 不影响格局，但损六亲
  * */
-export const ZHI_XIANG_CHUAN = [
+export const ZHI_HAI = [
   ['子', '未', '势家相害'],
   ['丑', '午', '官鬼相害'],
   ['寅', '巳', '临官相害'],
@@ -401,7 +401,7 @@ export const ZHI_XIANG_CHUAN = [
   ['申', '亥', '争进相害'],
   ['酉', '戌', '嫉妒相害'],
 ] as const
-export type ZhiHaiDescription = (typeof ZHI_XIANG_CHUAN)[number][2]
+export type ZhiHaiDescription = (typeof ZHI_HAI)[number][2]
 export type ZhiHai = TargetField<{
   name: ZhiName
   targetName: ZhiName
@@ -446,11 +446,48 @@ export function zhiHai(this: Zhi, target?: Zhi | ZhiName): ZhiHai | undefined {
   return getRelation.call(this, {
     target,
     nameArray: [...ZHI_NAME],
-    relationArray: ZHI_XIANG_CHUAN.map(item => [...item]),
+    relationArray: ZHI_HAI.map(item => [...item]),
     transform,
   }) as ZhiHai
 }
 
+/** 地支六破 */
+export const ZHI_PO = [
+  ['子', '酉'],
+  ['午', '卯'],
+  ['寅', '亥'],
+  ['巳', '申'],
+  ['辰', '丑'],
+  ['戌', '未'],
+] as const
+export type ZhiPo = TargetField<{
+  name: ZhiName
+  targetName: ZhiName
+}>
+/** 三合中看六害 */
+export const getZhiPoTargetName = (zhi: Zhi): ZhiName => {
+  /**
+   * 六破从三合局看
+   * 我为阳，破我者生我。我为阴，破我者我生
+   * 与我同方
+   */
+  const { name, yinYang } = zhi
+  const sanHe = zhiSanHe.call(zhi)
+  const hua = yinYang.name === '阳' ? sanHe?.hua.shengWo : sanHe?.hua.sheng
+
+  const targetSanhe = [...ZHI_SAN_HE].find(item => item[3] === hua?.targetName)
+  const i = isSiYu(name) ? 0 : isSiZheng(name) ? 1 : 2
+
+  return targetSanhe?.[i] as ZhiName
+}
+export function zhiPo(this: Zhi, target?: Zhi | ZhiName): ZhiPo | undefined {
+  target ??= getZhiPoTargetName(this)
+  return getRelation.call(this, {
+    target,
+    nameArray: [...ZHI_NAME],
+    relationArray: ZHI_PO.map(item => [...item]),
+  }) as ZhiPo
+}
 /** 地支接口 */
 export type Zhi = IndexField<{
   name: ZhiName
@@ -466,6 +503,7 @@ export type Zhi = IndexField<{
   cangGan: ReturnType<typeof getZhiCangGan>
   chong: ReturnType<typeof zhiChong>
   hai: ReturnType<typeof zhiHai>
+  po: ReturnType<typeof zhiPo>
 }>
 /** 十二地支 */
 export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
@@ -498,6 +536,8 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
   zhi.chong = zhiChong.call(zhi)
   // 地支相穿
   zhi.hai = zhiHai.call(zhi)
+  // 地支六破
+  zhi.po = zhiPo.call(zhi)
 
   return zhi
 })
