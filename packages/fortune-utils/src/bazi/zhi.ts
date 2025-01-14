@@ -115,10 +115,10 @@ export function zhiHui(this: Zhi): Zhihui | undefined {
 
 /** 地支三合 */
 export const ZHI_SAN_HE = [
-  ['申', '子', '辰', '水'],
+  ['亥', '卯', '未', '木'],
   ['寅', '午', '戌', '火'],
   ['巳', '酉', '丑', '金'],
-  ['亥', '卯', '未', '木'],
+  ['申', '子', '辰', '水'],
 ] as const
 export type ZhiSanHeDescription = (typeof ZHI_SAN_HE)[number][3]
 export type ZhiSanHe = RelationField<Zhi, ZhiSanHeDescription>
@@ -488,6 +488,67 @@ export function zhiPo(this: Zhi, target?: Zhi | ZhiName): ZhiPo | undefined {
     relationArray: ZHI_PO.map(item => [...item]),
   }) as ZhiPo
 }
+
+/** 地支三刑 */
+export const ZHI_XING = [
+  ['寅', '巳', '无恩之刑'],
+  ['巳', '申', '无恩之刑'],
+  ['申', '寅', '无恩之刑'],
+  ['丑', '戌', '恃势之刑'],
+  ['戌', '未', '恃势之刑'],
+  ['未', '丑', '恃势之刑'],
+  ['子', '卯', '无礼之刑'],
+  ['卯', '子', '无礼之刑'],
+  ['辰', '辰', '自刑之刑'],
+  ['午', '午', '自刑之刑'],
+  ['酉', '酉', '自刑之刑'],
+  ['亥', '亥', '自刑之刑'],
+] as const
+export type ZhiSanXingDescription = (typeof ZHI_XING)[number][2]
+export type ZhiSanXing = TargetField<{
+  name: ZhiName
+  targetName: ZhiName
+  description: ZhiSanXingDescription
+}>
+export const getZhiXingTargetName = (zhi: Zhi): ZhiName => {
+  /** 三合、三会论三刑
+   * 火金看同我，水看我生，木看生我
+   */
+  const { name } = zhi
+  const sanHe = zhiSanHe.call(zhi)
+  let hua: string | undefined
+  switch (sanHe?.hua.name) {
+    case '水':
+      hua = sanHe?.hua.sheng.targetName
+      break
+    case '木':
+      hua = sanHe?.hua.shengWo.targetName
+      break
+    default:
+      hua = sanHe?.hua.name
+      break
+  }
+
+  const targetSanhe = [...ZHI_SAN_HUI].find(item => item[3] === hua)
+  const i = isSiYu(name) ? 0 : isSiZheng(name) ? 1 : 2
+
+  return targetSanhe?.[i] as ZhiName
+}
+export function zhiXing(this: Zhi, target?: Zhi | ZhiName): ZhiSanXing | undefined {
+  target ??= getZhiXingTargetName(this)
+  const transform = ([_, _name2, description]: string[]): Required<Omit<ZhiSanXing, keyof TargetField>> =>
+    ({
+      description: description as ZhiSanXingDescription,
+    }) as Required<Omit<ZhiSanXing, keyof TargetField>>
+
+  return getRelation.call(this, {
+    target,
+    nameArray: [...ZHI_NAME],
+    relationArray: ZHI_XING.map(item => [...item]),
+    transform,
+  }) as ZhiSanXing
+}
+
 /** 地支接口 */
 export type Zhi = IndexField<{
   name: ZhiName
@@ -504,6 +565,7 @@ export type Zhi = IndexField<{
   chong: ReturnType<typeof zhiChong>
   hai: ReturnType<typeof zhiHai>
   po: ReturnType<typeof zhiPo>
+  xing: ReturnType<typeof zhiXing>
 }>
 /** 十二地支 */
 export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
@@ -538,6 +600,8 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
   zhi.hai = zhiHai.call(zhi)
   // 地支六破
   zhi.po = zhiPo.call(zhi)
+  // 地支三刑
+  zhi.xing = zhiXing.call(zhi)
 
   return zhi
 })
