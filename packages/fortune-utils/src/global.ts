@@ -35,14 +35,14 @@ declare global {
 
 /** 获取目标索引 */
 export const getTargetIndex = <T extends string | IndexField>(target: T, nameArray: string[]): number | undefined =>
-  typeof target === 'string' ? nameArray.indexOf(target) : target.index
+  typeof target === 'string' ? nameArray.indexOf(target) : target?.index
 
 /** 相互关系查找 */
 export function getRelation<T extends TargetField, S extends IndexField>(this: S, params: GetRelationParams<T, S>): T | undefined {
   const { name, index } = this
   const { target, nameArray, relationArray, transform } = params
 
-  const targetName = typeof target === 'string' ? target : target.name
+  const targetName = typeof target === 'string' ? target : target?.name
   const targetIndex = getTargetIndex(target, nameArray)
   // 两相互判断
   const defaultCondition = (names?: string[]): boolean => !!names?.includes(name) && !!names?.includes(targetName)

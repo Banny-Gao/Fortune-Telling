@@ -159,17 +159,22 @@ export type ZhiBanHe = TargetField<{
   wuxing: WuXing
   description: ZhiBanHeDescription
 }>
-export function zhiBanHe(this: Zhi, target?: Zhi | ZhiName): ZhiBanHe | [ZhiBanHe, ZhiBanHe] | undefined {
-  const groups = [...SHENG_WANG.slice(0, 2), ...MU_WANG.slice(0, 2), ...SHENG_MU.slice(0, 2)] as unknown as [ZhiName, ZhiName][]
-  const getTargetName = (item: readonly ZhiName[]): ZhiName => {
-    const [name1, name2] = item
-    return name1 === this.name ? name2 : name1
-  }
+const getGroups = (nameArraies: (readonly string[])[]): string[][] =>
+  nameArraies.reduce<string[][]>((acc, cur) => {
+    acc.push([...cur.slice(0, 2)])
+    return acc
+  }, [])
+const getTargetName = (item: string[], name: string): string => {
+  const [name1, name2] = item
+  return name1 === name ? name2 : name1
+}
+export function zhiBanHe(this: Zhi, target?: Zhi | ZhiName): ZhiBanHe | ZhiBanHe[] | undefined {
+  const groups = getGroups([...SHENG_WANG, ...MU_WANG, ...SHENG_MU])
 
   if (!target) {
     const targetNames = groups
       .filter(item => item.includes(this.name))
-      .map(getTargetName)
+      .map(item => getTargetName(item, this.name))
       .flat() as ZhiName[]
     return targetNames.map(name => zhiBanHe.call(this, name)) as [ZhiBanHe, ZhiBanHe]
   }
@@ -549,6 +554,48 @@ export function zhiXing(this: Zhi, target?: Zhi | ZhiName): ZhiSanXing | undefin
   }) as ZhiSanXing
 }
 
+/** 地支暗合 */
+export const ZHI_AN_HE = [
+  ['寅', '丑', '通合'],
+  ['亥', '午', '通合'],
+  ['卯', '申', '通禄合'],
+  ['巳', '酉', '通禄合'],
+  ['子', '巳', '通禄合'],
+  ['寅', '午', '通禄合'],
+] as const
+export type ZhiAnHeDescription = (typeof ZHI_AN_HE)[number][2]
+export type ZhiAnHe = TargetField<{
+  name: ZhiName
+  targetName: ZhiName
+  description: ZhiAnHeDescription
+}>
+
+export function zhiAnHe(this: Zhi, target?: Zhi | ZhiName): ZhiAnHe | ZhiAnHe[] | undefined {
+  if (!target) {
+    const groups = getGroups([...ZHI_AN_HE])
+
+    const targetNames = groups
+      .filter(item => item.includes(this.name))
+      .map(item => getTargetName(item, this.name))
+      .flat() as ZhiName[]
+    target = targetNames[0]
+    if (!target) return void 0
+    if (targetNames.length > 1) return targetNames.map(name => zhiAnHe.call(this, name)) as ZhiAnHe[]
+  }
+
+  const transform = ([_, _name2, description]: string[]): Required<Omit<ZhiAnHe, keyof TargetField>> =>
+    ({
+      description: description as ZhiAnHeDescription,
+    }) as Required<Omit<ZhiAnHe, keyof TargetField>>
+
+  return getRelation.call(this, {
+    target,
+    nameArray: [...ZHI_NAME],
+    relationArray: ZHI_AN_HE.map(item => [...item]),
+    transform,
+  }) as ZhiAnHe
+}
+
 /** 地支接口 */
 export type Zhi = IndexField<{
   name: ZhiName
@@ -566,6 +613,7 @@ export type Zhi = IndexField<{
   hai: ReturnType<typeof zhiHai>
   po: ReturnType<typeof zhiPo>
   xing: ReturnType<typeof zhiXing>
+  anHe: ReturnType<typeof zhiAnHe>
 }>
 /** 十二地支 */
 export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
@@ -602,6 +650,8 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
   zhi.po = zhiPo.call(zhi)
   // 地支三刑
   zhi.xing = zhiXing.call(zhi)
+  // 地支暗合
+  zhi.anHe = zhiAnHe.call(zhi)
 
   return zhi
 })
