@@ -1,4 +1,4 @@
-import { generateRelation, getObjectByName, generateNamesProp } from './global'
+import { generateRelation, getObjectByName, generateNamesProp, flushAsync } from './global'
 
 /** 阴阳 */
 export type YinYang = OptionField<{
@@ -111,10 +111,14 @@ export const wuxings: WuXing[] = WX_NAME.map((name, index) => {
     index,
   } as WuXing
 
-  wuxing.sheng = woSheng.call(wuxing, WX_NAME[(index + 1) % 5])
-  wuxing.shengWo = shengWo.call(wuxing, WX_NAME[(index - 1 + 5) % 5])
-  wuxing.ke = woKe.call(wuxing, WX_NAME[(index - 3 + 5) % 5])
-  wuxing.keWo = keWo.call(wuxing, WX_NAME[(index + 3) % 5])
+  flushAsync([
+    () => {
+      wuxing.sheng = woSheng.call(wuxing, WX_NAME[(index + 1) % 5])
+      wuxing.shengWo = shengWo.call(wuxing, WX_NAME[(index - 1 + 5) % 5])
+      wuxing.ke = woKe.call(wuxing, WX_NAME[(index - 3 + 5) % 5])
+      wuxing.keWo = keWo.call(wuxing, WX_NAME[(index + 3) % 5])
+    },
+  ])
 
   return wuxing
 })

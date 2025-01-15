@@ -13,5 +13,6 @@ module.exports = {
     '@typescript-eslint/no-unnecessary-type-assertion': ['off'],
     '@typescript-eslint/non-nullable-type-assertion-style': ['off'],
     'no-param-reassign': ['off'],
+    'import/no-cycle': ['warn'],
   },
 }

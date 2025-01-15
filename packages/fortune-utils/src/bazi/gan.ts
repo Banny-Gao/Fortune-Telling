@@ -1,7 +1,9 @@
 import { wuxings, yinYangs, getWuXing } from '../wuxing'
-import { getRelation } from '../global'
+import { getRelation, flushAsync } from '../global'
+import { SI_YU_NAME, ZHI_NAME } from './zhi'
 
 import type { WuXing, YinYang, WuXingName } from '../wuxing'
+import type { ZhiName } from './zhi'
 
 /** 十天干 */
 export type GanName = NameConst<typeof GAN_NAME>
@@ -62,9 +64,36 @@ export function ganChong(this: Gan, target?: Gan | GanName): GanChong | undefine
   }) as GanChong
 }
 
-/** 十二长生 todo */
-export type TwelveLongLifeName = NameConst<typeof TWELVE_LONG_LIFE_NAME>
-export const TWELVE_LONG_LIFE_NAME = ['长生', '沐浴', '冠带', '临官', '帝旺', '衰', '病', '死', '墓', '绝', '胎', '养'] as const
+/** 五行寄生十二宫 */
+export type TwelvePalaceName = NameConst<typeof TWELVE_PALACE_NAME>
+export const TWELVE_PALACE_NAME = ['长生', '沐浴', '冠带', '临官', '帝旺', '衰', '病', '死', '墓', '绝', '胎', '养'] as const
+
+export const recyclePalace = (offset: number, array = [...ZHI_NAME]): ZhiName[] => {
+  return array.slice(offset).concat(array.slice(0, offset))
+}
+export const oppsiteRecyclePalace = (offset: number): ZhiName[] => {
+  return recyclePalace(4, recyclePalace(offset).reverse())
+}
+export type GanPalace = BasicField<{
+  name: TwelvePalaceName
+  zhi: ZhiName
+}>
+export function getGanPalace(this: Gan): GanPalace[] {
+  const { wuxing, yinYang } = this
+  // 火土同宫
+  const wuxingName = wuxing.name === '土' ? '火' : wuxing.name
+  const siYuName = SI_YU_NAME.find(([_, name]) => name === wuxingName)?.[0] as ZhiName
+  const offset = ZHI_NAME.indexOf(siYuName)
+  const twelvePalace = yinYang.name === '阳' ? recyclePalace(offset) : oppsiteRecyclePalace(offset)
+
+  return twelvePalace.map((zhiName, index) => ({
+    name: TWELVE_PALACE_NAME[index],
+    zhi: zhiName,
+  }))
+}
+
+export const getGanWuxing = (ganName: GanName): WuXing => wuxings[Math.floor(GAN_NAME.indexOf(ganName) / 2) % 5]
+export const getGanYinYang = (ganName: GanName): YinYang => yinYangs[(GAN_NAME.indexOf(ganName) + 1) % 2]
 
 /** 天干接口 */
 export type Gan = IndexField<{
@@ -91,6 +120,8 @@ export type Gan = IndexField<{
   he: ReturnType<typeof ganHe>
   /** 冲 */
   chong: ReturnType<typeof ganChong>
+  /** 五行寄生十二宫 */
+  twelvePalace: ReturnType<typeof getGanPalace>
 }>
 
 /** 十天干 */
@@ -113,8 +144,14 @@ export const gans: Gan[] = GAN_NAME.map((name, index) => {
       targetIndex: (index % 5) * 2,
     },
   } as Gan
-  gan.he = ganHe.call(gan)
-  gan.chong = ganChong.call(gan)
+
+  flushAsync([
+    () => {
+      gan.he = ganHe.call(gan)
+      gan.chong = ganChong.call(gan)
+      gan.twelvePalace = getGanPalace.call(gan)
+    },
+  ])
 
   return gan
 })

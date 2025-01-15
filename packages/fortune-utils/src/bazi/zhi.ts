@@ -2,7 +2,7 @@ import { wuxings, yinYangs, getWuXing } from '../wuxing'
 import { SEASON_NAME } from '../date'
 import { gans } from './gan'
 
-import { getRelation, generateNamesProp, equalName } from '../global'
+import { getRelation, generateNamesProp, equalName, flushAsync } from '../global'
 
 import type { WuXing, YinYang, WuXingName } from '../wuxing'
 import type { SeasonName } from '../date'
@@ -632,26 +632,31 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
     wuxing: getZhiWuxing(index),
     season: [...SEASON_NAME][Math.floor(((index - 2 + 12) % 12) / 3)],
   } as Zhi
-  //  掌诀 横合 竖害 斜冲
-  zhi.he = zhiHe.call(zhi)
-  // 地支三会
-  zhi.hui = zhiHui.call(zhi)
-  // 地支三合
-  zhi.sanHe = zhiSanHe.call(zhi)
-  // 地支半合
-  zhi.banHe = zhiBanHe.call(zhi)
-  // 地支藏干
-  zhi.cangGan = getZhiCangGan.call(zhi)
-  // 地支六冲
-  zhi.chong = zhiChong.call(zhi)
-  // 地支相穿
-  zhi.hai = zhiHai.call(zhi)
-  // 地支六破
-  zhi.po = zhiPo.call(zhi)
-  // 地支三刑
-  zhi.xing = zhiXing.call(zhi)
-  // 地支暗合
-  zhi.anHe = zhiAnHe.call(zhi)
+
+  flushAsync([
+    () => {
+      //  掌诀 横合 竖害 斜冲
+      zhi.he = zhiHe.call(zhi)
+      // 地支三会
+      zhi.hui = zhiHui.call(zhi)
+      // 地支三合
+      zhi.sanHe = zhiSanHe.call(zhi)
+      // 地支半合
+      zhi.banHe = zhiBanHe.call(zhi)
+      // 地支藏干
+      zhi.cangGan = getZhiCangGan.call(zhi)
+      // 地支六冲
+      zhi.chong = zhiChong.call(zhi)
+      // 地支相穿
+      zhi.hai = zhiHai.call(zhi)
+      // 地支六破
+      zhi.po = zhiPo.call(zhi)
+      // 地支三刑
+      zhi.xing = zhiXing.call(zhi)
+      // 地支暗合
+      zhi.anHe = zhiAnHe.call(zhi)
+    },
+  ])
 
   return zhi
 })
