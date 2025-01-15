@@ -1,8 +1,9 @@
-import { wuxings, yinYangs, getWuXing } from '../wuxing'
+import { getWuxings, getYinYangs, getWuXing } from '../wuxing'
 import { SEASON_NAME } from '../date'
-import { gans } from './gan'
+import { getGans } from './gan'
+import { getCache, CacheKey } from '../utils/caches'
 
-import { getRelation, generateNamesProp, equalName, flushAsync } from '../global'
+import { getRelation, generateNamesProp, equalName } from '../global'
 
 import type { WuXing, YinYang, WuXingName } from '../wuxing'
 import type { SeasonName } from '../date'
@@ -21,7 +22,7 @@ export type GeoName = NameConst<typeof GEO_NAME>
 export const GEO_NAME = ['墨池', '柳岸', '广谷', '琼林', '草泽', '大驿', '烽堠', '花园', '名都', '寺钟', '烧原', '悬河'] as const
 
 /** 获取地支的阴阳 */
-export const getZhiYinYang = (index: Zhi['index']): YinYang => yinYangs[(index + 1) % 2]
+export const getZhiYinYang = (index: Zhi['index']): YinYang => getYinYangs()[(index + 1) % 2]
 
 /** 获取地支的五行 */
 export const getZhiWuxing = (index: Zhi['index']): WuXing => {
@@ -35,7 +36,7 @@ export const getZhiWuxing = (index: Zhi['index']): WuXing => {
 
   const wuxingIndex = isTu ? 2 : seasonIndex
 
-  return wuxings[wuxingIndex]
+  return getWuxings()[wuxingIndex]
 }
 
 /** 四正|四旺（子午卯酉）旺：水火木金 */
@@ -225,6 +226,8 @@ export const CANG_GAN_NAME = [
  * */
 type QiName = GanName | null
 const getBenQi = (zhi: Zhi): QiName => {
+  const gans = getGans()
+  const yinYangs = getYinYangs()
   const { wuxing, yinYang } = zhi
   const isSiWang = isSiZheng(zhi.name)
   const isSiChangSheng = isSiYu(zhi.name)
@@ -241,6 +244,7 @@ const getBenQi = (zhi: Zhi): QiName => {
  * 3.
  */
 const getYuQi = (zhi: Zhi): QiName => {
+  const gans = getGans()
   const { wuxing, index } = zhi
   const isSiWang = isSiZheng(zhi.name)
   const isShui = equalName(wuxing, '水')
@@ -272,6 +276,7 @@ const getYuQi = (zhi: Zhi): QiName => {
  * 2. 本支四长生，中气五行为我生，取阳
  */
 const getZhongQi = (zhi: Zhi): QiName => {
+  const gans = getGans()
   const { wuxing } = zhi
   // 本支为四墓, 五行为墓库，取阴
   if (isSiku(zhi.name)) {
@@ -292,7 +297,9 @@ const getZhongQi = (zhi: Zhi): QiName => {
 
   return null
 }
-export function getZhiCangGan(this: Zhi): [QiName, QiName, QiName] {
+/** 藏干 */
+export type ZhiCangGan = [QiName, QiName, QiName]
+export function getZhiCangGan(this: Zhi): ZhiCangGan {
   return [getBenQi(this), getZhongQi(this), getYuQi(this)]
 }
 
@@ -616,30 +623,27 @@ export type Zhi = IndexField<{
   anHe: ReturnType<typeof zhiAnHe>
 }>
 /** 十二地支 */
-export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
-  const zhi = {
-    ...generateNamesProp(
-      {
-        animal: ANIMAL_NAME,
-        geo: GEO_NAME,
-        fingerPosition: FINGER_POSITION,
-      },
-      index
-    ),
-    name,
-    index,
-    yinYang: getZhiYinYang(index),
-    wuxing: getZhiWuxing(index),
-    season: [...SEASON_NAME][Math.floor(((index - 2 + 12) % 12) / 3)],
-  } as Zhi
+export const getZhis = (): Zhi[] =>
+  getCache(CacheKey.DI_ZHI, () =>
+    ZHI_NAME.map((name, index) => {
+      const zhi = {
+        ...generateNamesProp(
+          {
+            animal: ANIMAL_NAME,
+            geo: GEO_NAME,
+            fingerPosition: FINGER_POSITION,
+          },
+          index
+        ),
+        name,
+        index,
+        yinYang: getZhiYinYang(index),
+        wuxing: getZhiWuxing(index),
+        season: [...SEASON_NAME][Math.floor(((index - 2 + 12) % 12) / 3)],
+      } as Zhi
 
-  flushAsync([
-    () => {
-      //  掌诀 横合 竖害 斜冲
       zhi.he = zhiHe.call(zhi)
-      // 地支三会
       zhi.hui = zhiHui.call(zhi)
-      // 地支三合
       zhi.sanHe = zhiSanHe.call(zhi)
       // 地支半合
       zhi.banHe = zhiBanHe.call(zhi)
@@ -655,9 +659,7 @@ export const zhis: Zhi[] = ZHI_NAME.map((name, index) => {
       zhi.xing = zhiXing.call(zhi)
       // 地支暗合
       zhi.anHe = zhiAnHe.call(zhi)
-    },
-  ])
 
-  return zhi
-})
-console.log('十二地支：', zhis)
+      return zhi
+    })
+  )

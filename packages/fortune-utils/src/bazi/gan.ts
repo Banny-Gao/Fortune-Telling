@@ -1,7 +1,7 @@
-import { wuxings, yinYangs, getWuXing } from '../wuxing'
-import { getRelation, flushAsync } from '../global'
+import { getWuxings, getYinYangs, getWuXing } from '../wuxing'
+import { getRelation } from '../global'
 import { SI_YU_NAME, ZHI_NAME } from './zhi'
-
+import { getCache, CacheKey } from '../utils/caches'
 import type { WuXing, YinYang, WuXingName } from '../wuxing'
 import type { ZhiName } from './zhi'
 
@@ -92,9 +92,6 @@ export function getGanPalace(this: Gan): GanPalace[] {
   }))
 }
 
-export const getGanWuxing = (ganName: GanName): WuXing => wuxings[Math.floor(GAN_NAME.indexOf(ganName) / 2) % 5]
-export const getGanYinYang = (ganName: GanName): YinYang => yinYangs[(GAN_NAME.indexOf(ganName) + 1) % 2]
-
 /** 天干接口 */
 export type Gan = IndexField<{
   name: GanName
@@ -125,34 +122,35 @@ export type Gan = IndexField<{
 }>
 
 /** 十天干 */
-export const gans: Gan[] = GAN_NAME.map((name, index) => {
-  const gan = {
-    index,
-    name,
-    yinYang: yinYangs[(index + 1) % 2],
-    wuxing: wuxings[Math.floor(index / 2) % 5],
-    wuhudun: {
-      name,
-      index,
-      targetName: GAN_NAME[((index + 1) % 5) * 2],
-      targetIndex: ((index + 1) % 5) * 2,
-    },
-    wushudun: {
-      name,
-      index,
-      targetName: GAN_NAME[(index % 5) * 2],
-      targetIndex: (index % 5) * 2,
-    },
-  } as Gan
+export const getGans = (): Gan[] =>
+  getCache(CacheKey.TIAN_GAN, () =>
+    GAN_NAME.map((name, index) => {
+      const yinYangs = getYinYangs()
+      const wuxings = getWuxings()
 
-  flushAsync([
-    () => {
+      const gan = {
+        index,
+        name,
+        yinYang: yinYangs[(index + 1) % 2],
+        wuxing: wuxings[Math.floor(index / 2) % 5],
+        wuhudun: {
+          name,
+          index,
+          targetName: GAN_NAME[((index + 1) % 5) * 2],
+          targetIndex: ((index + 1) % 5) * 2,
+        },
+        wushudun: {
+          name,
+          index,
+          targetName: GAN_NAME[(index % 5) * 2],
+          targetIndex: (index % 5) * 2,
+        },
+      } as Gan
+
       gan.he = ganHe.call(gan)
       gan.chong = ganChong.call(gan)
       gan.twelvePalace = getGanPalace.call(gan)
-    },
-  ])
 
-  return gan
-})
-console.log('十天干：', gans)
+      return gan
+    })
+  )

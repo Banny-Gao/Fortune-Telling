@@ -1,4 +1,5 @@
-import { generateRelation, getObjectByName, generateNamesProp, flushAsync } from './global'
+import { generateRelation, getObjectByName, generateNamesProp } from './global'
+import { getCache, CacheKey } from './utils/caches'
 
 /** 阴阳 */
 export type YinYang = OptionField<{
@@ -9,14 +10,17 @@ export type YinYang = OptionField<{
 export type YinYangName = NameConst<typeof YIN_YANG_NAME>
 export type YinYangValue = -1 | 1
 export const YIN_YANG_NAME = ['阴', '阳'] as const
-export const yinYangs: YinYang[] = YIN_YANG_NAME.map<YinYang>((name, index) => ({
-  name,
-  value: index === 0 ? -1 : 1,
-  opposite: {
-    name: index === 0 ? '阳' : '阴',
-    value: index === 0 ? 1 : -1,
-  },
-}))
+export const getYinYangs = (): YinYang[] =>
+  getCache(CacheKey.YIN_YANG, () =>
+    YIN_YANG_NAME.map<YinYang>((name, index) => ({
+      name,
+      value: index === 0 ? -1 : 1,
+      opposite: {
+        name: index === 0 ? '阳' : '阴',
+        value: index === 0 ? 1 : -1,
+      },
+    }))
+  )
 
 /** 五行 */
 export type WuXingName = NameConst<typeof WX_NAME>
@@ -94,35 +98,34 @@ export type WuXing = IndexField<{
   wuwei: WuWeiName
   wuse: WuSeName
 }>
-export const wuxings: WuXing[] = WX_NAME.map((name, index) => {
-  const wuxing = {
-    ...generateNamesProp(
-      {
-        fangwei: DIRECTION_NAME,
-        wuzang: WU_ZANG_NAME,
-        liuFu: WU_FU_NAME,
-        wuzhi: WU_ZHI_NAME,
-        wuwei: WU_WEI_NAME,
-        wuse: WU_SE_NAME,
-      },
-      index
-    ),
-    name,
-    index,
-  } as WuXing
 
-  flushAsync([
-    () => {
+export const getWuxings = (): WuXing[] =>
+  getCache(CacheKey.WUXING, () =>
+    WX_NAME.map((name, index) => {
+      const wuxing = {
+        ...generateNamesProp(
+          {
+            fangwei: DIRECTION_NAME,
+            wuzang: WU_ZANG_NAME,
+            liuFu: WU_FU_NAME,
+            wuzhi: WU_ZHI_NAME,
+            wuwei: WU_WEI_NAME,
+            wuse: WU_SE_NAME,
+          },
+          index
+        ),
+        name,
+        index,
+      } as WuXing
+
       wuxing.sheng = woSheng.call(wuxing, WX_NAME[(index + 1) % 5])
       wuxing.shengWo = shengWo.call(wuxing, WX_NAME[(index - 1 + 5) % 5])
       wuxing.ke = woKe.call(wuxing, WX_NAME[(index - 3 + 5) % 5])
       wuxing.keWo = keWo.call(wuxing, WX_NAME[(index + 3) % 5])
-    },
-  ])
 
-  return wuxing
-})
+      return wuxing
+    })
+  )
 
 /** 根据名称获取五行 */
-export const getWuXing = (name: WuXingName): WuXing | undefined => getObjectByName(wuxings, name)
-console.log('五行：', wuxings)
+export const getWuXing = (name: WuXingName): WuXing | undefined => getObjectByName(getWuxings(), name)

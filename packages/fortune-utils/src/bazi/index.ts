@@ -1,11 +1,11 @@
 import { SOLAR_TERM, getSolarTerms, getSolarAndLunarDate } from '../date'
 import { lcm } from '../utils/math'
-import { GAN_NAME, gans } from './gan'
-import { ZHI_NAME, zhis } from './zhi'
+import { GAN_NAME, getGans } from './gan'
+import { ZHI_NAME, getZhis } from './zhi'
 
 import type { LunarDate } from '../date'
 import type { Gan } from './gan'
-import type { Zhi } from './zhi'
+import type { Zhi, ZhiCangGan } from './zhi'
 
 /** 纳音五行 */
 export type GanZhiName = (typeof NAYIN_WUXING)[number][0 | 1]
@@ -64,6 +64,8 @@ export const getNianYin = (name: GanZhiName): NayinName => {
 
 /** 获取干支组合 */
 export const getGanZhiByIndex = (index: number): GanZhi => {
+  const gans = getGans()
+  const zhis = getZhis()
   const gan = gans[index % 10]
   const zhi = zhis[index % 12]
   const name = `${gan.name}${zhi.name}` as GanZhiName
@@ -107,12 +109,14 @@ export const SIXTY_JIAZI: GanZhi[] = generateSixtyJiaZi()
 
 /** 获取年的天干 */
 export const getYearGan = (year: number): Gan => {
+  const gans = getGans()
   const index = (year - 4) % 10
   return gans[index]
 }
 
 /**获取年的地支 */
 export const getYearZhi = (year: number): Zhi => {
+  const zhis = getZhis()
   const index = (year - 4) % 12
   return zhis[index]
 }
@@ -129,6 +133,7 @@ export const getMonthGanOffset = (lunarDate: LunarDate): number => {
 
 /** 获取农历某月某天所在的月的天干 */
 export const getMonthGan = (lunarDate: LunarDate, yearGan: Gan): Gan => {
+  const gans = getGans()
   // 正月天干的序号
   const firstMonthGanIndex = yearGan.wuhudun.targetIndex
   // 月干偏移
@@ -140,6 +145,7 @@ export const getMonthGan = (lunarDate: LunarDate, yearGan: Gan): Gan => {
 
 /** 获取农历某月某天所在的月的地支 */
 export const getMonthZhi = (lunarDate: LunarDate): Zhi => {
+  const zhis = getZhis()
   // 月干偏移
   const monthOffset = getMonthGanOffset(lunarDate)
 
@@ -182,12 +188,14 @@ export const getZhiShiIndex = (hour: number): number => Math.floor(((hour + 1) %
 
 /** 获取农历某月某天某时的天干：日上起时，五鼠遁 */
 export const getHourGan = (lunarDate: LunarDate, dayGan: Gan): Gan => {
+  const gans = getGans()
   const hourIndex = getZhiShiIndex(lunarDate.hour)
   return gans[(dayGan.wushudun.targetIndex + hourIndex) % 10]
 }
 
 /** 获取农历某月某天某时的地支 */
 export const getHourZhi = (lunarDate: LunarDate): Zhi => {
+  const zhis = getZhis()
   return zhis[getZhiShiIndex(lunarDate.hour)]
 }
 
@@ -196,7 +204,7 @@ export interface Bazi {
   sizhu: GanZhi[]
   tiangan: Gan[]
   dizhi: Zhi[]
-  canggan?: Gan[]
+  canggan: ZhiCangGan[]
 }
 
 /** 获取八字 */
@@ -221,14 +229,18 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
   const sizhu: GanZhi[] = [yearZhu, monthZhu, dayZhu, hourZhu]
   const tiangan: Gan[] = [yearGan, monthGan, dayZhu.gan, hourGan]
   const dizhi: Zhi[] = [yearZhi, monthZhi, dayZhu.zhi, hourZhi]
+  const canggan: ZhiCangGan[] = [yearZhi.cangGan, monthZhi.cangGan, dayZhu.zhi.cangGan, hourZhi.cangGan]
 
-  console.log('天干：', tiangan)
-  console.log('地支：', dizhi)
-  console.log('四柱：', sizhu)
-
+  console.group('八字')
+  console.log(sizhu)
+  console.log(tiangan)
+  console.log(dizhi)
+  console.log(canggan)
+  console.groupEnd()
   return {
     sizhu,
     tiangan,
     dizhi,
+    canggan,
   }
 }
