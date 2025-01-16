@@ -3,7 +3,7 @@ import { SEASON_NAME } from '../date'
 import { getGans } from './gan'
 import { getCache, CacheKey } from '../utils/caches'
 import { getShishen } from './shishen'
-
+import { numToChinese } from '../utils/number-to-chinese'
 import { getRelation, generateNamesProp, equalName, asyncExec } from '../global'
 
 import type { WuXing, YinYang, WuXingName } from '../wuxing'
@@ -13,6 +13,34 @@ import type { GanName } from './gan'
 /** 十二地支 */
 export type ZhiName = NameConst<typeof ZHI_NAME>
 export const ZHI_NAME = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
+
+/** 地支六阳六阴 */
+export type ZhiLiuYang = NameConst<typeof ZHI_LIU_YANG>
+export const ZHI_LIU_YANG = ['子', '寅', '辰', '午', '申', '戌'] as const
+export type ZhiLiuYin = NameConst<typeof ZHI_LIU_YIN>
+export const ZHI_LIU_YIN = ['丑', '卯', '巳', '未', '酉', '亥'] as const
+export type ZhiLiuYangLiuYin = {
+  num: number
+  yinYang: YinYang
+  description: string
+}
+export const getZhiLiuYangLiuYin = (name: ZhiName): ZhiLiuYangLiuYin => {
+  const isYang = ZHI_LIU_YANG.includes(name as ZhiLiuYang)
+  const yinYangName = isYang ? '阳' : '阴'
+  const index = isYang ? ZHI_LIU_YANG.indexOf(name as ZhiLiuYang) : ZHI_LIU_YIN.indexOf(name as ZhiLiuYin)
+
+  const num = index + 1
+  const description = `${numToChinese(num)}${yinYangName}`
+
+  return {
+    num,
+    description,
+    yinYang: {
+      name: yinYangName,
+      value: isYang ? 1 : -1,
+    },
+  }
+}
 
 /** 生肖 */
 export type AnimalName = NameConst<typeof ANIMAL_NAME>
@@ -608,6 +636,7 @@ export function zhiAnHe(this: Zhi, target?: Zhi | ZhiName): ZhiAnHe | ZhiAnHe[] 
 export type Zhi = IndexField<{
   name: ZhiName
   yinYang: YinYang
+  liuYinLiuYang: ReturnType<typeof getZhiLiuYangLiuYin>
   wuxing: WuXing
   season: SeasonName
   animal: AnimalName
@@ -640,6 +669,7 @@ export const getZhis = (): Zhi[] =>
         name,
         index,
         yinYang: getZhiYinYang(index),
+        liuYinLiuYang: getZhiLiuYangLiuYin(name),
         wuxing: getZhiWuxing(index),
         season: [...SEASON_NAME][Math.floor(((index - 2 + 12) % 12) / 3)],
       } as Zhi
