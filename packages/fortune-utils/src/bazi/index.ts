@@ -236,10 +236,10 @@ export const getPureGanZhiHe = ({ gan, zhi }: GanZhi): PureGanZhi => {
   }
 }
 
-/** 起变法：时变
+/** 起变法：时变, 变星
  * 取时柱干支所合
  */
-export type ShiBian = PureGanZhi
+export type BianXing = PureGanZhi
 
 /** 八字接口 */
 export interface Bazi {
@@ -249,7 +249,7 @@ export interface Bazi {
   canggan: ZhiCangGan[]
   taiyuan: TaiYuan
   taixi: TaiXi
-  shibian: ShiBian
+  bianxing: BianXing
 }
 
 /** 获取八字 */
@@ -282,6 +282,6 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
     canggan,
     taiyuan: getTaiYuan(dayZhu),
     taixi: getPureGanZhiHe(dayZhu),
-    shibian: getPureGanZhiHe(hourZhu),
+    bianxing: getPureGanZhiHe(hourZhu),
   }
 }
