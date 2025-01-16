@@ -199,15 +199,16 @@ export const getHourZhi = (lunarDate: LunarDate): Zhi => {
   return zhis[getZhiShiIndex(lunarDate.hour)]
 }
 
+export type PureGanZhi = {
+  gan: Gan
+  zhi: Zhi
+}
 /**
  * 日主胎元
  * 干进一位
  * 支进三位
  */
-export type TaiYuan = {
-  gan: Gan
-  zhi: Zhi
-}
+export type TaiYuan = PureGanZhi
 export const getTaiYuan = ({ gan, zhi }: GanZhi): TaiYuan => {
   const gans = getGans()
   const zhis = getZhis()
@@ -224,11 +225,8 @@ export const getTaiYuan = ({ gan, zhi }: GanZhi): TaiYuan => {
  * 日主胎息
  * 取干支所合
  */
-export type TaiXi = {
-  gan: Gan
-  zhi: Zhi
-}
-export const getTaiXi = ({ gan, zhi }: GanZhi): TaiXi => {
+export type TaiXi = PureGanZhi
+export const getPureGanZhiHe = ({ gan, zhi }: GanZhi): PureGanZhi => {
   const gans = getGans()
   const zhis = getZhis()
 
@@ -238,6 +236,11 @@ export const getTaiXi = ({ gan, zhi }: GanZhi): TaiXi => {
   }
 }
 
+/** 起变法：时变
+ * 取时柱干支所合
+ */
+export type ShiBian = PureGanZhi
+
 /** 八字接口 */
 export interface Bazi {
   sizhu: GanZhi[]
@@ -246,6 +249,7 @@ export interface Bazi {
   canggan: ZhiCangGan[]
   taiyuan: TaiYuan
   taixi: TaiXi
+  shibian: ShiBian
 }
 
 /** 获取八字 */
@@ -277,6 +281,7 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
     dizhi,
     canggan,
     taiyuan: getTaiYuan(dayZhu),
-    taixi: getTaiXi(dayZhu),
+    taixi: getPureGanZhiHe(dayZhu),
+    shibian: getPureGanZhiHe(hourZhu),
   }
 }
