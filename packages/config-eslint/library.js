@@ -39,6 +39,7 @@ module.exports = {
     'no-nested-ternary': 'off',
     'func-names': 'off',
     'no-implicit-coercion': 'off',
+    'no-promise-executor-return': 'off',
     '@typescript-eslint/consistent-type-definitions': 'off',
     '@typescript-eslint/no-floating-promises': 'off',
     '@typescript-eslint/no-unsafe-return': 'warn',

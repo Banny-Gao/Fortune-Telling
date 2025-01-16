@@ -5,4 +5,5 @@ export const wuxingFieldMap: Record<string, string> = {
   shengWo: '生我',
   wuzang: '五脏',
   liuFu: '六腑',
+  taiyuan: '胎元',
 }

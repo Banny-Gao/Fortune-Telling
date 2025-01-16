@@ -92,3 +92,6 @@ export const equalName = <T extends BasicField>(a: T, b: T | T['name']): boolean
 
 /** 通过 name 获取对象 */
 export const getObjectByName = <T extends BasicField>(objectArrary: T[], name: string): T | undefined => objectArrary.find(item => equalName(item, name))
+
+/** 异步执行 */
+export const asyncExec = <T>(fn: () => T): Promise<T> => new Promise(resolve => resolve(fn()))

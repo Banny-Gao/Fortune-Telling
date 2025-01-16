@@ -6,6 +6,7 @@ export default function GenerateBazi(): React.ReactElement {
   const [bazi, setBazi] = useState<Bazi | null>(null)
   const fetchBazi = async (): Promise<void> => {
     const baziResult = await getBazi(new Date(), 120.19)
+    console.log(baziResult)
     setBazi(baziResult)
   }
 

@@ -6,6 +6,14 @@ module.exports = {
   parserOptions: {
     project: './tsconfig.json',
   },
+  settings: {
+    'import/resolver': {
+      node: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        moduleDirectory: ['node_modules', 'src'],
+      },
+    },
+  },
   rules: {
     '@typescript-eslint/no-explicit-any': ['warn'],
     '@typescript-eslint/no-unsafe-assignment': ['warn'],
@@ -14,5 +22,6 @@ module.exports = {
     '@typescript-eslint/non-nullable-type-assertion-style': ['off'],
     'no-param-reassign': ['off'],
     'import/no-cycle': ['warn'],
+    'import/no-unresolved': 'off',
   },
 }

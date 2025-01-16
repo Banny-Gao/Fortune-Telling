@@ -1,13 +1,26 @@
 import { getWuxings, getYinYangs, getWuXing } from '../wuxing'
-import { getRelation } from '../global'
+import { getRelation, asyncExec } from '../global'
 import { SI_YU_NAME, ZHI_NAME } from './zhi'
 import { getCache, CacheKey } from '../utils/caches'
+import { getShishen } from './shishen'
+
 import type { WuXing, YinYang, WuXingName } from '../wuxing'
 import type { ZhiName } from './zhi'
 
 /** 十天干 */
 export type GanName = NameConst<typeof GAN_NAME>
 export const GAN_NAME = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
+
+/** 获取干的阴阳 */
+export const getGanYinYang = (ganIndex: number): YinYang => {
+  const yinYangs = getYinYangs()
+  return yinYangs[ganIndex % 2]
+}
+/** 获取干的五行 */
+export const getGanWuxing = (ganIndex: number): WuXing => {
+  const wuxings = getWuxings()
+  return wuxings[Math.floor(ganIndex / 2) % 5]
+}
 
 /** 天干五合 */
 export const GAN_HE = [
@@ -119,20 +132,19 @@ export type Gan = IndexField<{
   chong: ReturnType<typeof ganChong>
   /** 五行寄生十二宫 */
   twelvePalace: ReturnType<typeof getGanPalace>
+  /** 十神 */
+  shishen: ReturnType<typeof getShishen>
 }>
 
 /** 十天干 */
 export const getGans = (): Gan[] =>
   getCache(CacheKey.TIAN_GAN, () =>
     GAN_NAME.map((name, index) => {
-      const yinYangs = getYinYangs()
-      const wuxings = getWuxings()
-
       const gan = {
         index,
         name,
-        yinYang: yinYangs[(index + 1) % 2],
-        wuxing: wuxings[Math.floor(index / 2) % 5],
+        yinYang: getGanYinYang(index),
+        wuxing: getGanWuxing(index),
         wuhudun: {
           name,
           index,
@@ -150,6 +162,10 @@ export const getGans = (): Gan[] =>
       gan.he = ganHe.call(gan)
       gan.chong = ganChong.call(gan)
       gan.twelvePalace = getGanPalace.call(gan)
+
+      asyncExec(() => {
+        gan.shishen = getShishen.call(gan)
+      })
 
       return gan
     })

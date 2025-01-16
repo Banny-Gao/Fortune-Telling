@@ -2,8 +2,9 @@ import { getWuxings, getYinYangs, getWuXing } from '../wuxing'
 import { SEASON_NAME } from '../date'
 import { getGans } from './gan'
 import { getCache, CacheKey } from '../utils/caches'
+import { getShishen } from './shishen'
 
-import { getRelation, generateNamesProp, equalName } from '../global'
+import { getRelation, generateNamesProp, equalName, asyncExec } from '../global'
 
 import type { WuXing, YinYang, WuXingName } from '../wuxing'
 import type { SeasonName } from '../date'
@@ -621,6 +622,7 @@ export type Zhi = IndexField<{
   po: ReturnType<typeof zhiPo>
   xing: ReturnType<typeof zhiXing>
   anHe: ReturnType<typeof zhiAnHe>
+  shishen: ReturnType<typeof getShishen>
 }>
 /** 十二地支 */
 export const getZhis = (): Zhi[] =>
@@ -659,6 +661,11 @@ export const getZhis = (): Zhi[] =>
       zhi.xing = zhiXing.call(zhi)
       // 地支暗合
       zhi.anHe = zhiAnHe.call(zhi)
+
+      asyncExec(() => {
+        // 十神
+        zhi.shishen = getShishen.call(zhi)
+      })
 
       return zhi
     })
