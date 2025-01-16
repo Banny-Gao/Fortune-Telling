@@ -109,9 +109,9 @@ export const ZHI_SAN_HUI = [
   ['申', '酉', '戌', '金'],
   ['亥', '子', '丑', '水'],
 ] as const
-export type ZhihuiDescription = (typeof ZHI_SAN_HUI)[number][3]
-export type Zhihui = RelationField<Zhi, ZhihuiDescription>
-export function zhiHui(this: Zhi): Zhihui | undefined {
+export type ZhiHuiDescription = (typeof ZHI_SAN_HUI)[number][3]
+export type ZhiHui = RelationField<Zhi, ZhiHuiDescription>
+export function zhiHui(this: Zhi): ZhiHui | undefined {
   return reflectionOfThree(this, [...ZHI_SAN_HUI])
 }
 
