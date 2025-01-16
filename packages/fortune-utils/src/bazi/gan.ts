@@ -57,7 +57,7 @@ export function ganHe(this: Gan, target?: Gan | GanName): GanHe | undefined {
  * 天干相冲
  * - 隔六位而冲
  * - 从五行看，同性相冲，水火冲、金木冲
- * */
+ */
 export const GAN_CHONG = [
   ['甲', '庚'],
   ['乙', '辛'],
@@ -69,7 +69,9 @@ export type GanChong = TargetField<{
   targetName: GanName
 }>
 export function ganChong(this: Gan, target?: Gan | GanName): GanChong | undefined {
-  target ??= GAN_NAME[(this.index + 6) % 10]
+  const defaultTargetIndex = this.index < 5 ? this.index + 6 : (this.index + 4) % 10
+  target ??= GAN_NAME[defaultTargetIndex]
+
   return getRelation.call(this, {
     target,
     nameArray: [...GAN_NAME],

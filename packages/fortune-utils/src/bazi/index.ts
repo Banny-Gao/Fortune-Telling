@@ -275,6 +275,9 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
   const dizhi: Zhi[] = [yearZhi, monthZhi, dayZhu.zhi, hourZhi]
   const canggan: ZhiCangGan[] = [yearZhi.cangGan, monthZhi.cangGan, dayZhu.zhi.cangGan, hourZhi.cangGan]
 
+  console.log(getGans())
+  console.log(getZhis())
+
   return {
     sizhu,
     tiangan,
