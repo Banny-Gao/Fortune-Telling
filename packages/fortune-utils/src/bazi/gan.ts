@@ -11,6 +11,32 @@ import type { ZhiName } from './zhi'
 export type GanName = NameConst<typeof GAN_NAME>
 export const GAN_NAME = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
 
+/** 六神 */
+export type LiuShenName = (typeof LIU_SHEN_NAME)[number][1]
+export const LIU_SHEN_NAME = [
+  ['甲', '青龙'],
+  ['丙', '朱雀'],
+  ['戊', '勾陈'],
+  ['己', '腾蛇'],
+  ['庚', '白虎'],
+  ['壬', '玄武'],
+] as const
+export type LiuShen = TargetField<{
+  name: GanName
+  targetName: LiuShenName
+}>
+export function getLiuShen(this: Gan): LiuShen | undefined {
+  const { name } = this
+  const targetName = LIU_SHEN_NAME.find(([ganName]) => ganName === name)?.[1]
+
+  return (
+    targetName &&
+    ({
+      name,
+      targetName,
+    } as LiuShen)
+  )
+}
 /** 获取干的阴阳 */
 export const getGanYinYang = (ganIndex: number): YinYang => {
   const yinYangs = getYinYangs()
@@ -128,6 +154,8 @@ export type Gan = IndexField<{
    * targetName: 子时天干
    */
   wushudun: TargetField
+  /** 六神 */
+  liuShen: ReturnType<typeof getLiuShen>
   /** 合 */
   he: ReturnType<typeof ganHe>
   /** 冲 */
@@ -161,6 +189,7 @@ export const getGans = (): Gan[] =>
         },
       } as Gan
 
+      gan.liuShen = getLiuShen.call(gan)
       gan.he = ganHe.call(gan)
       gan.chong = ganChong.call(gan)
       gan.twelvePalace = getGanPalace.call(gan)

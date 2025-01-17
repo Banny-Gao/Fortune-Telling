@@ -22,7 +22,14 @@ export const getYinYangs = (): YinYang[] =>
     }))
   )
 
-/** 五行 */
+/**
+ * 五行
+ * 太易生水, 未有气. 水是基础，与太易状态契合
+ * 太初生火. 有气未有体
+ * 太始生木, 有形未有质
+ * 太素生金, 有质未有体
+ * 太极生土, 形体已具.
+ */
 export type WuXingName = NameConst<typeof WX_NAME>
 export const WX_NAME = ['木', '火', '土', '金', '水'] as const
 
