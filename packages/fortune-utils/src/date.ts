@@ -283,25 +283,23 @@ export const getSolarLongitude = (jd: number): number => {
   // 太阳轨道根数
   const L0 = 280.46646 + T * (36000.76983 + T * 0.0003032) // 平黄经
   const M = 357.52911 + T * (35999.05029 - T * 0.0001537) // 平近点角
-  const e = 0.016708634 - T * (0.000042037 + T * 0.0000001267) // 轨道离心率
+  // const e = 0.016708634 - T * (0.000042037 + T * 0.0000001267) // 轨道离心率
 
   // 计算中心差
   const sinM = Math.sin((M * Math.PI) / 180)
   const sin2M = Math.sin((2 * M * Math.PI) / 180)
-  const C =
-    (1.914602 - T * (0.004817 + T * 0.000014)) * sinM +
-    (0.019993 - T * 0.000101) * sin2M +
-    0.000289 * Math.sin((3 * M * Math.PI) / 180) +
-    0.000145 * Math.sin((4 * M * Math.PI) / 180) +
-    0.000031 * Math.sin((5 * M * Math.PI) / 180) +
-    e * sinM * 0.00134 // 加入轨道离心率的影响
+  const C = (1.914602 - T * (0.004817 + T * 0.000014)) * sinM + (0.019993 - T * 0.000101) * sin2M + 0.000289 * Math.sin((3 * M * Math.PI) / 180)
 
   // 计算真黄经并应用岁差修正
   const omega = 125.04 - 1934.136 * T
   const L = L0 + C - (0.00569 + 0.00478 * Math.sin((omega * Math.PI) / 180))
 
-  // 标准化到 0-360 度
-  return (L + 360) % 360
+  // 标准化到 0-360 度，处理负数情况
+  let result = L % 360
+  if (result < 0) {
+    result += 360
+  }
+  return result
 }
 
 /** 将日期转换为儒略日 */

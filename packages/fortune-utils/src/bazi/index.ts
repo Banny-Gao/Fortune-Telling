@@ -241,6 +241,23 @@ export const getPureGanZhiHe = ({ gan, zhi }: GanZhi): PureGanZhi => {
  */
 export type BianXing = PureGanZhi
 
+/** 起通法： 命宫
+ * 生月地支从子逆推
+ * 生时地支顺推至卯
+ */
+export type MingGong = PureGanZhi
+export const getMingGong = (lunarDate: LunarDate, monthZhu: GanZhi, hourZhi: Zhi): MingGong => {
+  const zhis = getZhis()
+  const monthOffset = (1 - lunarDate.month + 12) % 12
+  const hourOffset = (3 - hourZhi.index + 12) % 12
+  const index = (monthOffset + hourOffset) % 12
+
+  return {
+    gan: monthZhu.gan,
+    zhi: zhis[index],
+  }
+}
+
 /** 八字接口 */
 export interface Bazi {
   sizhu: GanZhi[]
@@ -250,11 +267,13 @@ export interface Bazi {
   taiyuan: TaiYuan
   taixi: TaiXi
   bianxing: BianXing
+  minggong: MingGong
 }
 
 /** 获取八字 */
 export const getBazi = async (date: Date, address?: number | string): Promise<Bazi> => {
   const lunarDate = await getSolarAndLunarDate(date, address)
+  console.log(lunarDate)
   // 年柱
   const yearGan = getYearGan(lunarDate.year)
   const yearZhi = getYearZhi(lunarDate.year)
@@ -274,6 +293,7 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
   const tiangan: Gan[] = [yearGan, monthGan, dayZhu.gan, hourGan]
   const dizhi: Zhi[] = [yearZhi, monthZhi, dayZhu.zhi, hourZhi]
   const canggan: ZhiCangGan[] = [yearZhi.cangGan, monthZhi.cangGan, dayZhu.zhi.cangGan, hourZhi.cangGan]
+  const minggong = getMingGong(lunarDate, monthZhu, hourZhi)
 
   console.log(getGans())
   console.log(getZhis())
@@ -286,5 +306,6 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
     taiyuan: getTaiYuan(dayZhu),
     taixi: getPureGanZhiHe(dayZhu),
     bianxing: getPureGanZhiHe(hourZhu),
+    minggong,
   }
 }

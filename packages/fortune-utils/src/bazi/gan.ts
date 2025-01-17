@@ -1,5 +1,5 @@
 import { getWuxings, getYinYangs, getWuXing } from '../wuxing'
-import { getRelation, asyncExec } from '../global'
+import { generateNamesProp, getRelation, asyncExec } from '../global'
 import { SI_YU_NAME, ZHI_NAME } from './zhi'
 import { getCache, CacheKey } from '../utils/caches'
 import { getShishen } from './shishen'
@@ -10,6 +10,10 @@ import type { ZhiName } from './zhi'
 /** 十天干 */
 export type GanName = NameConst<typeof GAN_NAME>
 export const GAN_NAME = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
+
+/** 天文 */
+export type TianWenName = NameConst<typeof TIAN_WEN>
+export const TIAN_WEN = ['雷', '风', '日', '星', '霞', '云', '月', '霜', '秋露', '春霖'] as const
 
 /** 六神 */
 export type LiuShenName = (typeof LIU_SHEN_NAME)[number][1]
@@ -40,7 +44,7 @@ export function getLiuShen(this: Gan): LiuShen | undefined {
 /** 获取干的阴阳 */
 export const getGanYinYang = (ganIndex: number): YinYang => {
   const yinYangs = getYinYangs()
-  return yinYangs[ganIndex % 2]
+  return yinYangs[(ganIndex + 1) % 2]
 }
 /** 获取干的五行 */
 export const getGanWuxing = (ganIndex: number): WuXing => {
@@ -142,6 +146,8 @@ export type Gan = IndexField<{
    */
   yinYang: YinYang
   wuxing: WuXing
+  /** 天文 */
+  tianWen: TianWenName
   /*
    * 五虎遁: 年上起月，表示正月天干
    * 甲己之年丙作首，乙庚之岁戊为头，丙辛之岁寻庚起，丁壬壬位顺行流，戊癸何方发，壬子是真途
@@ -171,6 +177,12 @@ export const getGans = (): Gan[] =>
   getCache(CacheKey.TIAN_GAN, () =>
     GAN_NAME.map((name, index) => {
       const gan = {
+        ...generateNamesProp(
+          {
+            tianWen: TIAN_WEN,
+          },
+          index
+        ),
         index,
         name,
         yinYang: getGanYinYang(index),
