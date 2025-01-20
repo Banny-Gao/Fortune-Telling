@@ -209,7 +209,7 @@ export type PureGanZhi = {
  * 支进三位
  */
 export type TaiYuan = PureGanZhi
-export const getTaiYuan = ({ gan, zhi }: GanZhi): TaiYuan => {
+export const getTaiYuanGeneral = ({ gan, zhi }: GanZhi): TaiYuan => {
   const gans = getGans()
   const zhis = getZhis()
   const taiGan = gans[(gan.index + 1) % 10]
@@ -247,14 +247,19 @@ export type BianXing = PureGanZhi
  */
 export type MingGong = PureGanZhi
 export const getMingGong = (lunarDate: LunarDate, monthZhu: GanZhi, hourZhi: Zhi): MingGong => {
+  const gans = getGans()
   const zhis = getZhis()
+
   const monthOffset = (1 - lunarDate.month + 12) % 12
-  const hourOffset = (3 - hourZhi.index + 12) % 12
-  const index = (monthOffset + hourOffset) % 12
+  const offset = 3 - monthOffset + hourZhi.index
+
+  const zhiIndex = (offset + 12) % 12
+  const firstGanIndex = (monthZhu.gan.index - ((monthZhu.zhi.index - 2 + 12) % 12) + 20) % 10
+  const ganIndex = (firstGanIndex + offset + 10) % 10
 
   return {
-    gan: monthZhu.gan,
-    zhi: zhis[index],
+    gan: gans[ganIndex],
+    zhi: zhis[zhiIndex],
   }
 }
 
@@ -263,11 +268,11 @@ export interface Bazi {
   sizhu: GanZhi[]
   tiangan: Gan[]
   dizhi: Zhi[]
-  canggan: ZhiCangGan[]
-  taiyuan: TaiYuan
-  taixi: TaiXi
-  bianxing: BianXing
-  minggong: MingGong
+  canggan: ZhiCangGan[] // 藏干
+  taiyuan: TaiYuan // 胎元
+  taixi: TaiXi // 胎息
+  bianxing: BianXing // 变星
+  minggong: MingGong // 命宫
 }
 
 /** 获取八字 */
@@ -293,7 +298,11 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
   const tiangan: Gan[] = [yearGan, monthGan, dayZhu.gan, hourGan]
   const dizhi: Zhi[] = [yearZhi, monthZhi, dayZhu.zhi, hourZhi]
   const canggan: ZhiCangGan[] = [yearZhi.cangGan, monthZhi.cangGan, dayZhu.zhi.cangGan, hourZhi.cangGan]
+
   const minggong = getMingGong(lunarDate, monthZhu, hourZhi)
+  const taiyuan = getTaiYuanGeneral(monthZhu)
+  const taixi = getPureGanZhiHe(dayZhu)
+  const bianxing = getPureGanZhiHe(hourZhu)
 
   console.log(getGans())
   console.log(getZhis())
@@ -303,9 +312,9 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
     tiangan,
     dizhi,
     canggan,
-    taiyuan: getTaiYuan(dayZhu),
-    taixi: getPureGanZhiHe(dayZhu),
-    bianxing: getPureGanZhiHe(hourZhu),
+    taiyuan,
+    taixi,
+    bianxing,
     minggong,
   }
 }
