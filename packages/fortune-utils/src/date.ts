@@ -272,38 +272,42 @@ export const getSolarAndLunarDate = async (date: Date, longitudeOrAddress?: numb
 }
 
 /**
- * 计算太阳黄经度数（角度）
- * @param jd - 儒略日
- * @returns 太阳黄经度数（0-360度）
+ * 计算指定儒略日的太阳黄经
+ * 使用天文算法计算太阳在黄道上的位置
+ * @param jd 儒略日
+ * @returns 太阳黄经(度数，范围0-360)
  */
-export const getSolarLongitude = (jd: number): number => {
-  // 计算儒略世纪数
+export function getSolarLongitude(jd: number): number {
+  // 计算T是从J2000.0起的儒略世纪数
   const T = (jd - 2451545.0) / 36525
+  const T2 = T * T
+  const T3 = T2 * T
 
-  // 太阳轨道根数
-  const L0 = 280.46646 + T * (36000.76983 + T * 0.0003032) // 平黄经
-  const M = 357.52911 + T * (35999.05029 - T * 0.0001537) // 平近点角
-  const e = 0.016708634 - T * (0.000042037 + T * 0.0000001267) // 轨道离心率
+  // 太阳平黄经
+  let L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T2
 
-  // 计算中心差
-  const sinM = Math.sin((M * Math.PI) / 180)
-  const sin2M = Math.sin((2 * M * Math.PI) / 180)
+  // 太阳平近点角
+  let M = 357.5291 + 35999.0503 * T - 0.0001559 * T2 - 0.00000048 * T3
+
+  // 地球轨道离心率
+  const e = 0.016708617 - 0.000042037 * T - 0.0000001236 * T2
+
+  // 太阳中心差
   const C =
-    (1.914602 - T * (0.004817 + T * 0.000014)) * sinM +
-    (0.019993 - T * 0.000101) * sin2M +
-    0.000289 * Math.sin((3 * M * Math.PI) / 180) +
-    e * sinM * (0.200094 + 0.000293 * T) // 加入轨道离心率的影响
+    (1.9146 - 0.004817 * T - 0.000014 * T2) * Math.sin((M * Math.PI) / 180) +
+    (0.019993 - 0.000101 * T) * Math.sin((2 * M * Math.PI) / 180) +
+    0.00029 * Math.sin((3 * M * Math.PI) / 180)
 
-  // 计算真黄经并应用岁差修正
-  const omega = 125.04 - 1934.136 * T
-  const L = L0 + C - (0.00569 + 0.00478 * Math.sin((omega * Math.PI) / 180))
+  // 真黄经
+  let theta = L0 + C
 
-  // 标准化到 0-360 度，处理负数情况
-  let result = L % 360
-  if (result < 0) {
-    result += 360
+  // 把角度限制在0-360度之间
+  theta = theta % 360
+  if (theta < 0) {
+    theta += 360
   }
-  return result
+
+  return theta
 }
 
 /** 将日期转换为儒略日 */
@@ -388,14 +392,14 @@ export const getSolarTerms = (date: LunarDate): [SolarTerm, SolarTerm] => {
   const jd = getJulianDay(date.solarDate)
   const longitude = getSolarLongitude(jd)
 
-  // 根据太阳黄经确定节气索引
-  // 立春（315度）对应索引0，每个节气间隔15度
-  const currentTermIndex = Math.floor(((longitude + 45) % 360) / 15)
+  // 从春分点(0度)到立春点(315度)的偏移量是3个节气
+  const currentTermIndex = (Math.floor(longitude / 15) + 3) % 24
   const nextTermIndex = (currentTermIndex + 1) % 24
 
-  // 计算这两个节气的准确时间
-  const currentTermLongitude = (currentTermIndex * 15 + 270) % 360
-  const nextTermLongitude = (nextTermIndex * 15 + 270) % 360
+  // 计算这两个节气的准确黄经
+  // 需要减去偏移量对应的度数
+  const currentTermLongitude = ((currentTermIndex - 3 + 24) % 24) * 15
+  const nextTermLongitude = ((nextTermIndex - 3 + 24) % 24) * 15
 
   // 计算准确时间，扩大搜索范围
   const currentTermJD = findSolarTermJD(currentTermLongitude, jd - 20, jd + 20)
