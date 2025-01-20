@@ -1,3 +1,4 @@
+import dayjs from 'dayjs'
 import { SOLAR_TERM, getSolarTerms, getSolarAndLunarDate } from '../date'
 import { lcm } from '../utils/math'
 import { GAN_NAME, getGans } from './gan'
@@ -263,6 +264,31 @@ export const getMingGong = (lunarDate: LunarDate, monthZhu: GanZhi, hourZhi: Zhi
   }
 }
 
+/** 司令 */
+export const SINING_NAME = [
+  ['寅', ['戊土', 7], ['丙火', 7], ['甲木', 16]],
+  ['卯', ['甲木', 10], ['乙木', 20]],
+  ['辰', ['乙木', 9], ['癸水', 3], ['戊土', 18]],
+  ['巳', ['戊土', 5], ['庚金', 9], ['丙火', 16]],
+  ['午', ['丙火', 10], ['己土', 9], ['丁火', 11]],
+  ['未', ['丁火', 9], ['乙木', 3], ['己土', 18]],
+  ['申', ['戊己土', 10], ['壬癸水', 3], ['庚金', 17]],
+  ['酉', ['庚金', 10], ['辛金', 20]],
+  ['戌', ['辛金', 9], ['丁火', 3], ['戊土', 18]],
+  ['亥', ['戊土', 7], ['甲木', 5], ['壬水', 18]],
+  ['子', ['壬水', 10], ['癸水', 20]],
+  ['丑', ['癸水', 9], ['辛金', 3], ['己土', 18]],
+] as const
+export const getSining = (lunarDate: LunarDate, yueZhi: Zhi) => {
+  const [currentSolarTerm] = getSolarTerms(lunarDate)
+  const now = dayjs(lunarDate.solarDate)
+  const term = dayjs(currentSolarTerm.lunarDate.solarDate)
+  const diff = now.diff(term, 'day')
+  debugger
+  console.log(diff)
+  debugger
+}
+
 /** 八字接口 */
 export interface Bazi {
   sizhu: GanZhi[]
@@ -273,6 +299,7 @@ export interface Bazi {
   taixi: TaiXi // 胎息
   bianxing: BianXing // 变星
   minggong: MingGong // 命宫
+  sining: ReturnType<typeof getSining> // 司令
 }
 
 /** 获取八字 */
@@ -303,6 +330,7 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
   const taiyuan = getTaiYuanGeneral(monthZhu)
   const taixi = getPureGanZhiHe(dayZhu)
   const bianxing = getPureGanZhiHe(hourZhu)
+  const sining = getSining(lunarDate, monthZhu.zhi)
 
   console.log(getGans())
   console.log(getZhis())
@@ -316,5 +344,6 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
     taixi,
     bianxing,
     minggong,
+    sining,
   }
 }
