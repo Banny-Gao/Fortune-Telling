@@ -275,7 +275,6 @@ export const getSolarAndLunarDate = async (date: Date, longitudeOrAddress?: numb
  * 计算指定儒略日的太阳黄经
  * 使用天文算法计算太阳在黄道上的位置
  * @param jd 儒略日
- * @returns 太阳黄经(度数，范围0-360)
  */
 export function getSolarLongitude(jd: number): number {
   // 计算T是从J2000.0起的儒略世纪数
@@ -284,13 +283,9 @@ export function getSolarLongitude(jd: number): number {
   const T3 = T2 * T
 
   // 太阳平黄经
-  let L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T2
-
+  const L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T2
   // 太阳平近点角
-  let M = 357.5291 + 35999.0503 * T - 0.0001559 * T2 - 0.00000048 * T3
-
-  // 地球轨道离心率
-  const e = 0.016708617 - 0.000042037 * T - 0.0000001236 * T2
+  const M = 357.5291 + 35999.0503 * T - 0.0001559 * T2 - 0.00000048 * T3
 
   // 太阳中心差
   const C =

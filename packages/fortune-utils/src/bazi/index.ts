@@ -279,14 +279,29 @@ export const SINING_NAME = [
   ['子', ['壬水', 10], ['癸水', 20]],
   ['丑', ['癸水', 9], ['辛金', 3], ['己土', 18]],
 ] as const
-export const getSining = (lunarDate: LunarDate, yueZhi: Zhi) => {
+export const getSining = (lunarDate: LunarDate, yueZhi: Zhi): string => {
   const [currentSolarTerm] = getSolarTerms(lunarDate)
-  const now = dayjs(lunarDate.solarDate)
-  const term = dayjs(currentSolarTerm.lunarDate.solarDate)
+  const now = dayjs(lunarDate.solarDate).startOf('day')
+  const term = dayjs(currentSolarTerm.lunarDate.solarDate).startOf('day')
+  // 从节气看
   const diff = now.diff(term, 'day')
-  debugger
-  console.log(diff)
-  debugger
+  const [_, ...rest] = SINING_NAME[yueZhi.index]
+
+  // 只看月
+  // const diff = lunarDate.day
+  // const [_, ...rest] = SINING_NAME[lunarDate.monthIndex]
+
+  let i = 0,
+    sum = 0
+  while (i < rest.length) {
+    sum += rest[i][1]
+    if (sum >= diff) {
+      break
+    }
+    i++
+  }
+
+  return rest[i][0]
 }
 
 /** 八字接口 */
