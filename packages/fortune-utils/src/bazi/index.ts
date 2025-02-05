@@ -310,12 +310,16 @@ export const getSining = (lunarDate: LunarDate, yueZhi: Zhi): string => {
 }
 
 /** 大运 */
-export type DaYun = PureGanZhi<{
-  age: number
-  date: string
-}>
+export type DaYun = {
+  qi: {} // 起运
+  jiao: {} // 交运
+  yun: PureGanZhi<{
+    age: number
+    date: string
+  }>[] // 大运干支
+}
 
-export const getDaYun = (lunarDate: LunarDate, gender: 'male' | 'female'): DaYun[] => {
+export const getDaYun = (lunarDate: LunarDate, gender: 'male' | 'female'): DaYun => {
   const gans = getGans()
   const zhis = getZhis()
 
@@ -333,7 +337,7 @@ export interface Bazi {
   bianxing: BianXing // 变星
   minggong: MingGong // 命宫
   sining: ReturnType<typeof getSining> // 司令
-  dayun: DaYun[] // 大运
+  dayun: DaYun // 大运
 }
 
 /** 获取八字 */
