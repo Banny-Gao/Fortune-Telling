@@ -176,7 +176,12 @@ export const getDayGanZhi = (lunarDate: LunarDate): GanZhi => {
   const baseDate = new Date(1900, 0, 1, 12, 0, 0)
   const baseDateTimestamp = baseDate.getTime()
 
-  const offset = Math.floor((timestamp - baseDateTimestamp) / (24 * 60 * 60 * 1000))
+  let offset = Math.floor((timestamp - baseDateTimestamp) / (24 * 60 * 60 * 1000))
+
+  // 早晚子时，大于 23点，算作第二天
+  if (lunarDate.solarDate.getHours() > 23) {
+    offset += 1
+  }
 
   // 计算干支索引
   const jiaziIndex = (offset + BASE_JIAZI_INDEX) % 60
@@ -200,10 +205,10 @@ export const getHourZhi = (lunarDate: LunarDate): Zhi => {
   return zhis[getZhiShiIndex(lunarDate.hour)]
 }
 
-export type PureGanZhi = {
+export type PureGanZhi<T extends Record<string, any> = any> = {
   gan: Gan
   zhi: Zhi
-}
+} & T
 /**
  * 日主胎元
  * 干进一位
@@ -304,6 +309,19 @@ export const getSining = (lunarDate: LunarDate, yueZhi: Zhi): string => {
   return rest[i][0]
 }
 
+/** 大运 */
+export type DaYun = PureGanZhi<{
+  age: number
+  date: string
+}>
+
+export const getDaYun = (lunarDate: LunarDate, gender: 'male' | 'female'): DaYun[] => {
+  const gans = getGans()
+  const zhis = getZhis()
+
+  // 大运起始，阳男阴女顺排，阴男阳女逆排
+}
+
 /** 八字接口 */
 export interface Bazi {
   sizhu: GanZhi[]
@@ -315,10 +333,16 @@ export interface Bazi {
   bianxing: BianXing // 变星
   minggong: MingGong // 命宫
   sining: ReturnType<typeof getSining> // 司令
+  dayun: DaYun[] // 大运
 }
 
 /** 获取八字 */
-export const getBazi = async (date: Date, address?: number | string): Promise<Bazi> => {
+type GetBaziParams = {
+  date: Date
+  address?: number | string
+  gender: 'male' | 'female'
+}
+export const getBazi = async ({ date, address, gender }: GetBaziParams): Promise<Bazi> => {
   const lunarDate = await getSolarAndLunarDate(date, address)
   console.log(lunarDate)
   // 年柱
@@ -346,6 +370,7 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
   const taixi = getPureGanZhiHe(dayZhu)
   const bianxing = getPureGanZhiHe(hourZhu)
   const sining = getSining(lunarDate, monthZhu.zhi)
+  const dayun = getDaYun(lunarDate, gender)
 
   console.log(getGans())
   console.log(getZhis())
@@ -360,5 +385,6 @@ export const getBazi = async (date: Date, address?: number | string): Promise<Ba
     bianxing,
     minggong,
     sining,
+    dayun,
   }
 }
