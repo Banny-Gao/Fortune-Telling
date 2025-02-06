@@ -313,17 +313,72 @@ export const getSining = (lunarDate: LunarDate, yueZhi: Zhi): string => {
 export type DaYun = {
   qi: {} // 起运
   jiao: {} // 交运
-  yun: PureGanZhi<{
-    age: number
-    date: string
-  }>[] // 大运干支
+  yun: (GanZhi & {
+    age: number[]
+    date: string[]
+  })[] // 大运干支
 }
 
-export const getDaYun = (lunarDate: LunarDate, gender: 'male' | 'female'): DaYun => {
-  const gans = getGans()
-  const zhis = getZhis()
+export const getDaYun = ({
+  yearGan,
+  monthZhu,
+  lunarDate,
+  gender,
+}: {
+  yearGan: Gan
+  monthZhu: GanZhi
+  lunarDate: LunarDate
+  gender: 'male' | 'female'
+}): DaYun => {
+  /* 大运起始，阳男阴女顺排，阴男阳女逆排
+   * 大运起始年龄 = 出生年份的干支纳音五行与月柱天干纳音五行的生克关系决定的
+   * 阳年生男，阴年生女顺排；阴年生男，阳年生女逆排
+   * 大运干支 = 月柱干支
+   * 大运年龄 = 月柱干支纳音五行与大运干支纳音五行的生克关系决定的
+   * 大运干支 = 月柱干支
+   */
 
-  // 大运起始，阳男阴女顺排，阴男阳女逆排
+  const isShun = (yearGan.yinYang.name === '阳' && gender === 'male') || (yearGan.yinYang.name === '阴' && gender === 'female')
+  const [currentSolarTerm, nextSolarTerm] = getSolarTerms(lunarDate)
+  console.log('-----起运节令日期', currentSolarTerm, nextSolarTerm, lunarDate)
+  const diff = isShun
+    ? dayjs(nextSolarTerm.lunarDate.solarDate).diff(dayjs(lunarDate.solarDate), 'hour')
+    : dayjs(lunarDate.solarDate).diff(dayjs(currentSolarTerm.lunarDate.solarDate), 'hour')
+
+  // 三天计一岁，一天计四个月
+  const age = Math.floor(diff / 72)
+  const month = ((diff % 72) / 24) * 4
+
+  // 大运 120 年， 10 年一运
+  const yun = []
+  let yunAge = age,
+    yunYear = 0
+  for (let i = 1; i <= 12; i++) {
+    const index = isShun ? monthZhu.index + i : monthZhu.index - i
+    const ganZhi = SIXTY_JIAZI[(index + 60) % 60]
+    yun.push({
+      ...ganZhi,
+      age: [yunAge, yunAge + 10],
+      date: [
+        dayjs(lunarDate.solarDate).add(yunAge, 'year').format('YYYY'),
+        dayjs(lunarDate.solarDate)
+          .add(yunAge + 10, 'year')
+          .format('YYYY'),
+      ],
+    })
+    yunAge += 10
+    yunYear += 10
+  }
+
+  return {
+    qi: {
+      age,
+      born: dayjs(lunarDate.solarDate).format('YYYY-MM-DD'),
+      date: dayjs(lunarDate.solarDate).add(age, 'year').add(month, 'month').format('YYYY-MM-DD'),
+    },
+    jiao: {},
+    yun,
+  }
 }
 
 /** 八字接口 */
@@ -374,7 +429,12 @@ export const getBazi = async ({ date, address, gender }: GetBaziParams): Promise
   const taixi = getPureGanZhiHe(dayZhu)
   const bianxing = getPureGanZhiHe(hourZhu)
   const sining = getSining(lunarDate, monthZhu.zhi)
-  const dayun = getDaYun(lunarDate, gender)
+  const dayun = getDaYun({
+    yearGan,
+    monthZhu,
+    lunarDate,
+    gender,
+  })
 
   console.log(getGans())
   console.log(getZhis())
