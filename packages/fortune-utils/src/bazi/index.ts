@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { SOLAR_TERM, getSolarTerms, getSolarAndLunarDate } from '../date'
+import { SOLAR_TERM, getSolarTerms, getSolarAndLunarDate, getYearSolarTerms } from '../date'
 import { lcm } from '../utils/math'
 import { GAN_NAME, getGans } from './gan'
 import { ZHI_NAME, getZhis } from './zhi'
@@ -127,7 +127,7 @@ export const SOLAR_TERM_OFFSET: Record<string, number> = Object.fromEntries(SOLA
 
 /** 获取某年某月某日节气的月干偏移 */
 export const getMonthGanOffset = (lunarDate: LunarDate): number => {
-  const [currentSolarTerm] = getSolarTerms(lunarDate)
+  const [currentSolarTerm] = getSolarTerms(lunarDate.solarDate)
   const solarTermOffset = SOLAR_TERM_OFFSET[currentSolarTerm.name]
   return solarTermOffset
 }
@@ -285,7 +285,7 @@ export const SINING_NAME = [
   ['丑', ['癸水', 9], ['辛金', 3], ['己土', 18]],
 ] as const
 export const getSining = (lunarDate: LunarDate, yueZhi: Zhi): string => {
-  const [currentSolarTerm] = getSolarTerms(lunarDate)
+  const [currentSolarTerm] = getSolarTerms(lunarDate.solarDate)
   const now = dayjs(lunarDate.solarDate).startOf('day')
   const term = dayjs(currentSolarTerm.lunarDate.solarDate).startOf('day')
   // 从节气看
@@ -339,10 +339,15 @@ export const getDaYun = ({
    */
 
   const isShun = (yearGan.yinYang.name === '阳' && gender === 'male') || (yearGan.yinYang.name === '阴' && gender === 'female')
-  const [currentSolarTerm, nextSolarTerm] = getSolarTerms(lunarDate)
-  console.log('-----起运节令日期', currentSolarTerm, nextSolarTerm, lunarDate)
+  const solarTerms = getYearSolarTerms(lunarDate.year)
+  console.log('-----solarTerms', solarTerms)
+  const [currentSolarTerm] = getSolarTerms(lunarDate.solarDate)
+  const nextMonthDate = dayjs(lunarDate.solarDate).add(1, 'month').toDate()
+  const [nextMothSolarTerm] = getSolarTerms(nextMonthDate)
+
+  console.log('-----起运节令日期', currentSolarTerm, nextMothSolarTerm, lunarDate)
   const diff = isShun
-    ? dayjs(nextSolarTerm.lunarDate.solarDate).diff(dayjs(lunarDate.solarDate), 'hour')
+    ? dayjs(nextMothSolarTerm.lunarDate.solarDate).diff(dayjs(lunarDate.solarDate), 'hour')
     : dayjs(lunarDate.solarDate).diff(dayjs(currentSolarTerm.lunarDate.solarDate), 'hour')
 
   // 三天计一岁，一天计四个月

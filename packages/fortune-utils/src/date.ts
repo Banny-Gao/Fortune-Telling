@@ -382,9 +382,9 @@ export interface SolarTerm {
   lunarDate: LunarDate
 }
 
-/** 获取农历某月某天当月的节气 */
-export const getSolarTerms = (date: LunarDate): [SolarTerm, SolarTerm] => {
-  const jd = getJulianDay(date.solarDate)
+/** 获取某月某天前后的节气 */
+export const getSolarTerms = (date: Date): [SolarTerm, SolarTerm] => {
+  const jd = getJulianDay(date)
   const longitude = getSolarLongitude(jd)
 
   // 从春分点(0度)到立春点(315度)的偏移量是3个节气
@@ -416,4 +416,46 @@ export const getSolarTerms = (date: LunarDate): [SolarTerm, SolarTerm] => {
   }
 
   return [term1, term2]
+}
+
+/** 获取指定年份的24节气 */
+export const getYearSolarTerms = (year: number): SolarTerm[] => {
+  const solarTerms: SolarTerm[] = []
+
+  // 节气估算月份表 (立春到大寒对应的公历月份)
+  const ESTIMATE_MONTHS = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 0, 0]
+  // 节气估算日期表 (每个节气的大致公历日期)
+  const ESTIMATE_DAYS = [4, 19, 5, 20, 5, 20, 5, 21, 6, 21, 6, 22, 7, 22, 7, 23, 8, 23, 8, 23, 7, 22, 7, 5]
+
+  for (let i = 0; i < 24; i++) {
+    // 根据节气索引获取估算月份和日期
+    const estimateMonth = ESTIMATE_MONTHS[i]
+    const estimateDay = ESTIMATE_DAYS[i]
+
+    // 处理跨年 (小寒、大寒属于下一年的节气)
+    const actualYear = i >= 22 ? year + 1 : year
+
+    // 创建估算日期
+    const approxDate = new Date(actualYear, estimateMonth, estimateDay)
+    const jd = getJulianDay(approxDate)
+
+    // 计算精确的黄经位置 (立春开始每个节气间隔15度)
+    const targetLongitude = (315 + i * 15) % 360
+
+    // 查找精确的节气时间 (扩大搜索范围到前后30天)
+    const termJD = findSolarTermJD(targetLongitude, jd - 30, jd + 30)
+    const termDate = fromJulianDay(termJD)
+
+    // 确保节气属于目标年份
+    if (termDate.getFullYear() === year || (i >= 22 && termDate.getFullYear() === year + 1)) {
+      const term: SolarTerm = {
+        name: SOLAR_TERM[i],
+        lunarDate: solarToLunar(termDate),
+      }
+      solarTerms.push(term)
+    }
+  }
+
+  // 按时间排序
+  return solarTerms.sort((a, b) => a.lunarDate.solarDate.getTime() - b.lunarDate.solarDate.getTime())
 }
