@@ -62,6 +62,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@repo/fortune-utils':
+        specifier: workspace:*
+        version: link:../../packages/fortune-utils
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -81,9 +84,6 @@ importers:
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/config-eslint
-      '@repo/fortune-utils':
-        specifier: workspace:*
-        version: link:../../packages/fortune-utils
       '@repo/tailwind-config':
         specifier: workspace:*
         version: link:../../packages/config-tailwind

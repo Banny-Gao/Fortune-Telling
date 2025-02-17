@@ -22,7 +22,9 @@ module.exports = {
     '@typescript-eslint/no-unnecessary-type-assertion': ['off'],
     '@typescript-eslint/non-nullable-type-assertion-style': ['off'],
     'no-param-reassign': ['off'],
-    'import/no-cycle': ['warn'],
+    'import/no-cycle': 'off',
     'import/no-unresolved': 'off',
+    '@typescript-eslint/no-non-null-assertion': 'off',
+    'eslint-comments/require-description': 'off',
   },
 }

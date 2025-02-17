@@ -76,3 +76,11 @@ export const chineseToNum = (chinese: string): number => {
 
   return result + temp
 }
+
+// 将数字转转中文，如 1994 -> 一九九四
+export const toChineseNum = (num: number): string =>
+  num
+    .toString()
+    .split('')
+    .map(char => CHINESE_NUMS[parseInt(char)])
+    .join('')

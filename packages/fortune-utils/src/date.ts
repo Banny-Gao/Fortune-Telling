@@ -1,7 +1,7 @@
 import dayjs from 'dayjs'
 import { LUNAR_INFO } from './data/lunar-years'
 import { getCurrentLoc, getLocation } from './utils/map'
-
+import { toChineseNum } from './utils/number-to-chinese'
 /** 四季 */
 export type SeasonName = NameConst<typeof SEASON_NAME>
 export const SEASON_NAME = ['春', '夏', '秋', '冬'] as const
@@ -199,64 +199,74 @@ export type LunarDate = BaseDate<{
 
 /** 将真太阳时转换为农历日期 */
 export const solarToLunar = (date: Date): LunarDate => {
-  let offset = Math.floor((date.getTime() - new Date(1900, 0, 31).getTime()) / (24 * 60 * 60 * 1000))
+  const baseDate = new Date(1900, 0, 31)
+  const offsetDays = Math.floor((date.getTime() - baseDate.getTime()) / 86400000)
 
   let lunarYear = 1900
-  let lunarMonth = 1
-  let lunarDay = 1
+  let daysRemaining = offsetDays
   let isLeap = false
 
-  // 计算年
-  for (let i = 0; i < LUNAR_INFO.length && offset > 0; i++) {
-    const daysInLunarYear = getLunarYearDays(LUNAR_INFO[i])
-    if (offset < daysInLunarYear) {
-      break
-    }
-    offset -= daysInLunarYear
+  // 计算农历年
+  while (lunarYear < 2100 && daysRemaining > 0) {
+    const yearInfo = LUNAR_INFO[lunarYear - 1900]
+    const yearDays = getLunarYearDays(yearInfo)
+
+    if (daysRemaining < yearDays) break
+
+    daysRemaining -= yearDays
     lunarYear++
   }
 
-  // 计算月
-  const lunarInfo = LUNAR_INFO[lunarYear - 1900]
-  const leapMonth = getLeapMonth(lunarInfo)
-  let daysInMonth = 0
+  // 计算农历月
+  const yearInfo = LUNAR_INFO[lunarYear - 1900]
+  const leapMonth = getLeapMonth(yearInfo)
+  let lunarMonth = 0
+  let monthDays = 0
+  let leapProcessed = false
 
-  for (let i = 1; i <= 12 && offset > 0; i++) {
-    if (leapMonth > 0 && i === leapMonth + 1 && !isLeap) {
-      --i
-      isLeap = true
-      daysInMonth = getLeapDays(lunarInfo)
-    } else {
-      daysInMonth = getLunarMonthDays(lunarInfo, i)
+  for (let m = 1; m <= 12; m++) {
+    // 先处理正常月份
+    monthDays = getLunarMonthDays(yearInfo, m)
+    if (daysRemaining < monthDays) {
+      lunarMonth = m
+      break
     }
+    daysRemaining -= monthDays
 
-    if (isLeap && i === leapMonth + 1) isLeap = false
-    if (offset < daysInMonth) break
-
-    offset -= daysInMonth
-    lunarMonth++
+    // 处理闰月（在正常月份之后）
+    if (leapMonth === m && !leapProcessed) {
+      const leapDays = getLeapDays(yearInfo)
+      if (daysRemaining < leapDays) {
+        lunarMonth = m
+        isLeap = true
+        leapProcessed = true
+        break
+      }
+      daysRemaining -= leapDays
+      leapProcessed = true
+    }
   }
 
-  // 计算日
-  lunarDay = offset + 1
+  // 计算农历日
+  const lunarDay = daysRemaining + 1
 
-  const hour = date.getHours()
-  const minute = date.getMinutes()
-  const second = date.getSeconds()
-
-  // 农历日期文本
-  const text = `${lunarYear}年 ${LUNAR_MONTH[lunarMonth - 1]}月 ${LUNAR_DAY[lunarDay - 1]}`
+  // 处理月份显示（移除错误的月份修正）
+  let monthText: string = LUNAR_MONTH[lunarMonth - 1]
+  if (isLeap) {
+    monthText = `闰${monthText}`
+  }
+  const lunarYearText = toChineseNum(lunarYear)
 
   return {
     year: lunarYear,
     month: lunarMonth,
     day: lunarDay,
-    hour,
-    minute,
-    second,
+    hour: date.getHours(),
+    minute: date.getMinutes(),
+    second: date.getSeconds(),
     isLeap,
     solarDate: date,
-    text,
+    text: `${lunarYearText}年 ${monthText}月 ${LUNAR_DAY[lunarDay - 1]}`,
     monthIndex: lunarMonth - 1,
     dateIndex: lunarDay - 1,
   }
@@ -419,7 +429,12 @@ export const getSolarTerms = (date: Date): [SolarTerm, SolarTerm] => {
 }
 
 /** 获取指定年份的24节气 */
+const yearSolarTermsMap = new Map<number, SolarTerm[]>()
 export const getYearSolarTerms = (year: number): SolarTerm[] => {
+  if (yearSolarTermsMap.has(year)) {
+    return yearSolarTermsMap.get(year)!
+  }
+
   const solarTerms: SolarTerm[] = []
 
   // 节气估算月份表 (立春到大寒对应的公历月份)
@@ -457,5 +472,8 @@ export const getYearSolarTerms = (year: number): SolarTerm[] => {
   }
 
   // 按时间排序
-  return solarTerms.sort((a, b) => a.lunarDate.solarDate.getTime() - b.lunarDate.solarDate.getTime())
+  const sortedSolarTerms = solarTerms.sort((a, b) => a.lunarDate.solarDate.getTime() - b.lunarDate.solarDate.getTime())
+  yearSolarTermsMap.set(year, sortedSolarTerms)
+
+  return sortedSolarTerms
 }
