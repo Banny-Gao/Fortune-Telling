@@ -108,17 +108,38 @@ export const generateSixtyJiaZi = (): GanZhi[] => {
 /** 六十干支 */
 export const SIXTY_JIAZI: GanZhi[] = generateSixtyJiaZi()
 
+// 立春后算新的一年，修正年月数值取值
+const getFixedYearMonth = (lunarDate: LunarDate): [number, number] => {
+  const [currentSolarTerm, nextSolarTerm] = getSolarTerms(lunarDate.solarDate)
+  console.log('currentSolarTerm', currentSolarTerm)
+  console.log('nextSolarTerm', nextSolarTerm)
+  /** 上个节气为立春且在腊月，则年加一，月为1 */
+  if (currentSolarTerm.name === '立春' && lunarDate.month === 12) {
+    return [lunarDate.year + 1, 1]
+  }
+  /** 下个节气为立春且在正月，则年减一，月为12 */
+  if (nextSolarTerm.name === '立春' && lunarDate.month === 1) {
+    return [lunarDate.year - 1, 12]
+  }
+
+  return [lunarDate.year, lunarDate.month]
+}
+
 /** 获取年的天干 */
-export const getYearGan = (year: number): Gan => {
+export const getYearGan = (lunarDate: LunarDate): Gan => {
+  const [fixedYear] = getFixedYearMonth(lunarDate)
+
   const gans = getGans()
-  const index = (year - 4) % 10
+  const index = (fixedYear - 4) % 10
   return gans[index]
 }
 
 /**获取年的地支 */
-export const getYearZhi = (year: number): Zhi => {
+export const getYearZhi = (lunarDate: LunarDate): Zhi => {
+  const [fixedYear] = getFixedYearMonth(lunarDate)
+
   const zhis = getZhis()
-  const index = (year - 4) % 12
+  const index = (fixedYear - 4) % 12
   return zhis[index]
 }
 
@@ -128,6 +149,7 @@ export const SOLAR_TERM_OFFSET: Record<string, number> = Object.fromEntries(SOLA
 /** 获取某年某月某日节气的月干偏移 */
 export const getMonthGanOffset = (lunarDate: LunarDate): number => {
   const [currentSolarTerm] = getSolarTerms(lunarDate.solarDate)
+
   const solarTermOffset = SOLAR_TERM_OFFSET[currentSolarTerm.name]
   return solarTermOffset
 }
@@ -440,8 +462,8 @@ export const getBazi = async ({ date, address, gender }: GetBaziParams): Promise
   const lunarDate = await getSolarAndLunarDate(date, address)
   console.log('农历日生日：', lunarDate)
   // 年柱
-  const yearGan = getYearGan(lunarDate.year)
-  const yearZhi = getYearZhi(lunarDate.year)
+  const yearGan = getYearGan(lunarDate)
+  const yearZhi = getYearZhi(lunarDate)
   const yearZhu = composeGanZhi(yearGan, yearZhi)
   // 月柱
   const monthGan = getMonthGan(lunarDate, yearGan)

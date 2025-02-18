@@ -381,7 +381,10 @@ export const fromJulianDay = (jd: number): Date => {
   const minutes = Math.floor((fraction * 24 - hours) * 60)
   const seconds = Math.floor(((fraction * 24 - hours) * 60 - minutes) * 60)
 
-  return new Date(year, month - 1, day, hours, minutes, seconds)
+  // 创建UTC时间对象
+  const utcDate = new Date(year, month - 1, day, hours, minutes, seconds)
+  // 转换为中国标准时间（UTC+8）
+  return new Date(utcDate.getTime() + 8 * 60 * 60 * 1000)
 }
 
 /** 节气接口 */
@@ -397,7 +400,7 @@ export const getSolarTerms = (date: Date): [SolarTerm, SolarTerm] => {
   const jd = getJulianDay(date)
   const longitude = getSolarLongitude(jd)
 
-  // 从春分点(0度)到立春点(315度)的偏移量是3个节气
+  // 修正索引计算：大寒对应索引23
   const currentTermIndex = (Math.floor(longitude / 15) + 3) % 24
   const nextTermIndex = (currentTermIndex + 1) % 24
 
@@ -407,25 +410,17 @@ export const getSolarTerms = (date: Date): [SolarTerm, SolarTerm] => {
   const nextTermLongitude = ((nextTermIndex - 3 + 24) % 24) * 15
 
   // 计算准确时间，扩大搜索范围
-  const currentTermJD = findSolarTermJD(currentTermLongitude, jd - 20, jd + 20)
-  const nextTermJD = findSolarTermJD(nextTermLongitude, currentTermJD, currentTermJD + 40)
+  const currentTermJD = findSolarTermJD(currentTermLongitude, jd - 20, jd)
+  const nextTermJD = findSolarTermJD(nextTermLongitude, currentTermJD, currentTermJD + 20)
 
   // 转换为日期
   const currentTermDate = fromJulianDay(currentTermJD)
   const nextTermDate = fromJulianDay(nextTermJD)
 
-  // 创建节气对象
-  const term1: SolarTerm = {
-    name: SOLAR_TERM[currentTermIndex],
-    lunarDate: solarToLunar(currentTermDate),
-  }
-
-  const term2: SolarTerm = {
-    name: SOLAR_TERM[nextTermIndex],
-    lunarDate: solarToLunar(nextTermDate),
-  }
-
-  return [term1, term2]
+  return [
+    { name: SOLAR_TERM[currentTermIndex], lunarDate: solarToLunar(currentTermDate) },
+    { name: SOLAR_TERM[nextTermIndex], lunarDate: solarToLunar(nextTermDate) },
+  ]
 }
 
 /** 获取指定年份的24节气 */
