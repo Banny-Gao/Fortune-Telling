@@ -6,7 +6,7 @@ export default function GenerateBazi(): React.ReactElement {
   const [bazi, setBazi] = useState<Bazi | null>(null)
   const fetchBazi = async (): Promise<void> => {
     const baziResult = await getBazi({
-      date: new Date('2025-02-03 14:50:00'),
+      date: new Date('1994-09-16 14:31:00'),
       address: '四川眉山',
       gender: 'male',
     })

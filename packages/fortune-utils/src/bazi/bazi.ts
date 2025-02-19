@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { SOLAR_TERM, getSolarTerms, getSolarAndLunarDate, getYearSolarTerms } from '../date'
+import { SOLAR_TERM, getPrevAndNextSolarTerm, getSolarAndLunarDate, getYearSolarTerms } from '../date'
 import { lcm } from '../utils/math'
 import { GAN_NAME, getGans } from './gan'
 import { ZHI_NAME, getZhis } from './zhi'
@@ -109,10 +109,8 @@ export const generateSixtyJiaZi = (): GanZhi[] => {
 export const SIXTY_JIAZI: GanZhi[] = generateSixtyJiaZi()
 
 // 立春后算新的一年，修正年月数值取值
-const getFixedYearMonth = (lunarDate: LunarDate): [number, number] => {
-  const [currentSolarTerm, nextSolarTerm] = getSolarTerms(lunarDate.solarDate)
-  console.log('currentSolarTerm', currentSolarTerm)
-  console.log('nextSolarTerm', nextSolarTerm)
+const getFixedYearMonth = async (lunarDate: LunarDate): Promise<[number, number]> => {
+  const [currentSolarTerm, nextSolarTerm] = await getPrevAndNextSolarTerm(lunarDate.solarDate)
   /** 上个节气为立春且在腊月，则年加一，月为1 */
   if (currentSolarTerm.name === '立春' && lunarDate.month === 12) {
     return [lunarDate.year + 1, 1]
@@ -126,8 +124,8 @@ const getFixedYearMonth = (lunarDate: LunarDate): [number, number] => {
 }
 
 /** 获取年的天干 */
-export const getYearGan = (lunarDate: LunarDate): Gan => {
-  const [fixedYear] = getFixedYearMonth(lunarDate)
+export const getYearGan = async (lunarDate: LunarDate): Promise<Gan> => {
+  const [fixedYear] = await getFixedYearMonth(lunarDate)
 
   const gans = getGans()
   const index = (fixedYear - 4) % 10
@@ -135,8 +133,8 @@ export const getYearGan = (lunarDate: LunarDate): Gan => {
 }
 
 /**获取年的地支 */
-export const getYearZhi = (lunarDate: LunarDate): Zhi => {
-  const [fixedYear] = getFixedYearMonth(lunarDate)
+export const getYearZhi = async (lunarDate: LunarDate): Promise<Zhi> => {
+  const [fixedYear] = await getFixedYearMonth(lunarDate)
 
   const zhis = getZhis()
   const index = (fixedYear - 4) % 12
@@ -147,30 +145,30 @@ export const getYearZhi = (lunarDate: LunarDate): Zhi => {
 export const SOLAR_TERM_OFFSET: Record<string, number> = Object.fromEntries(SOLAR_TERM.map((term, index) => [term, Math.floor(index / 2)]))
 
 /** 获取某年某月某日节气的月干偏移 */
-export const getMonthGanOffset = (lunarDate: LunarDate): number => {
-  const [currentSolarTerm] = getSolarTerms(lunarDate.solarDate)
+export const getMonthGanOffset = async (lunarDate: LunarDate): Promise<number> => {
+  const [currentSolarTerm] = await getPrevAndNextSolarTerm(lunarDate.solarDate)
 
   const solarTermOffset = SOLAR_TERM_OFFSET[currentSolarTerm.name]
   return solarTermOffset
 }
 
 /** 获取农历某月某天所在的月的天干 */
-export const getMonthGan = (lunarDate: LunarDate, yearGan: Gan): Gan => {
+export const getMonthGan = async (lunarDate: LunarDate, yearGan: Gan): Promise<Gan> => {
   const gans = getGans()
   // 正月天干的序号
   const firstMonthGanIndex = yearGan.wuhudun.targetIndex
   // 月干偏移
-  const monthOffset = getMonthGanOffset(lunarDate)
+  const monthOffset = await getMonthGanOffset(lunarDate)
 
   const index = (firstMonthGanIndex + monthOffset) % 10
   return gans[index]
 }
 
 /** 获取农历某月某天所在的月的地支 */
-export const getMonthZhi = (lunarDate: LunarDate): Zhi => {
+export const getMonthZhi = async (lunarDate: LunarDate): Promise<Zhi> => {
   const zhis = getZhis()
   // 月支直接由节气决定，正月为寅(索引2)
-  const zhiIndex = (getMonthGanOffset(lunarDate) + 2) % 12
+  const zhiIndex = ((await getMonthGanOffset(lunarDate)) + 2) % 12
   return zhis[zhiIndex]
 }
 
@@ -242,13 +240,13 @@ const ZHI_SOLAR_TERM_RANGE: Record<number, [number, number, number]> = {
 }
 
 /** 根据月支获取节令、气令和下一个节气节令 */
-export const getMonthZhiSolarTerm = (year: number, zhi: Zhi): [SolarTerm, SolarTerm, SolarTerm] => {
+export const getMonthZhiSolarTerm = async (year: number, zhi: Zhi): Promise<[SolarTerm, SolarTerm, SolarTerm]> => {
   const [start, middle, end] = ZHI_SOLAR_TERM_RANGE[zhi.index]!
-  const terms = getYearSolarTerms(year)
+  const terms = await getYearSolarTerms(year)
 
   // 统一处理跨年节气
   const nextYear = year + Math.floor(end / 24)
-  const nextTerm = getYearSolarTerms(nextYear)[end % 24]
+  const nextTerm = (await getYearSolarTerms(nextYear))[end % 24]
 
   return [terms[start], terms[middle], nextTerm]
 }
@@ -332,8 +330,8 @@ export const SINING_NAME = [
   ['子', ['壬水', 10], ['癸水', 20]],
   ['丑', ['癸水', 9], ['辛金', 3], ['己土', 18]],
 ] as const
-export const getSining = (lunarDate: LunarDate, yueZhi: Zhi): string => {
-  const [start] = getMonthZhiSolarTerm(lunarDate.year, yueZhi)
+export const getSining = async (lunarDate: LunarDate, yueZhi: Zhi): Promise<string> => {
+  const [start] = await getMonthZhiSolarTerm(lunarDate.year, yueZhi)
   const now = dayjs(lunarDate.solarDate).startOf('day')
   const term = dayjs(start.lunarDate.solarDate).startOf('day')
   // 从节气看
@@ -371,7 +369,7 @@ export type DaYun = {
   })[] // 大运干支
 }
 
-export const getDaYun = ({
+export const getDaYun = async ({
   yearGan,
   monthZhu,
   lunarDate,
@@ -381,7 +379,7 @@ export const getDaYun = ({
   monthZhu: GanZhi
   lunarDate: LunarDate
   gender: 'male' | 'female'
-}): DaYun => {
+}): Promise<DaYun> => {
   /* 大运起始，阳男阴女顺排，阴男阳女逆排
    * 大运起始年龄 = 出生年份的干支纳音五行与月柱天干纳音五行的生克关系决定的
    * 阳年生男，阴年生女顺排；阴年生男，阳年生女逆排
@@ -391,7 +389,7 @@ export const getDaYun = ({
    */
 
   const isShun = (yearGan.yinYang.name === '阳' && gender === 'male') || (yearGan.yinYang.name === '阴' && gender === 'female')
-  const [start, _, end] = getMonthZhiSolarTerm(lunarDate.year, monthZhu.zhi)
+  const [start, _, end] = await getMonthZhiSolarTerm(lunarDate.year, monthZhu.zhi)
   console.log('起运节令日期：', start, end, lunarDate)
 
   const diff = isShun
@@ -448,7 +446,7 @@ export interface Bazi {
   taixi: TaiXi // 胎息
   bianxing: BianXing // 变星
   minggong: MingGong // 命宫
-  sining: ReturnType<typeof getSining> // 司令
+  sining: string // 司令
   dayun: DaYun // 大运
 }
 
@@ -462,18 +460,18 @@ export const getBazi = async ({ date, address, gender }: GetBaziParams): Promise
   const lunarDate = await getSolarAndLunarDate(date, address)
   console.log('农历日生日：', lunarDate)
   // 年柱
-  const yearGan = getYearGan(lunarDate)
-  const yearZhi = getYearZhi(lunarDate)
+  const yearGan = await getYearGan(lunarDate)
+  const yearZhi = await getYearZhi(lunarDate)
   const yearZhu = composeGanZhi(yearGan, yearZhi)
   // 月柱
-  const monthGan = getMonthGan(lunarDate, yearGan)
-  const monthZhi = getMonthZhi(lunarDate)
+  const monthGan = await getMonthGan(lunarDate, yearGan)
+  const monthZhi = await getMonthZhi(lunarDate)
   const monthZhu = composeGanZhi(monthGan, monthZhi)
   // 日柱
-  const dayZhu = getDayGanZhi(lunarDate)
+  const dayZhu = await getDayGanZhi(lunarDate)
   // 时柱
-  const hourGan = getHourGan(lunarDate, dayZhu.gan)
-  const hourZhi = getHourZhi(lunarDate)
+  const hourGan = await getHourGan(lunarDate, dayZhu.gan)
+  const hourZhi = await getHourZhi(lunarDate)
   const hourZhu = composeGanZhi(hourGan, hourZhi)
 
   const sizhu: GanZhi[] = [yearZhu, monthZhu, dayZhu, hourZhu]
@@ -481,12 +479,12 @@ export const getBazi = async ({ date, address, gender }: GetBaziParams): Promise
   const dizhi: Zhi[] = [yearZhi, monthZhi, dayZhu.zhi, hourZhi]
   const canggan: ZhiCangGan[] = [yearZhi.cangGan, monthZhi.cangGan, dayZhu.zhi.cangGan, hourZhi.cangGan]
 
-  const minggong = getMingGong(lunarDate, monthZhu, hourZhi)
-  const taiyuan = getTaiYuanGeneral(monthZhu)
-  const taixi = getPureGanZhiHe(dayZhu)
-  const bianxing = getPureGanZhiHe(hourZhu)
-  const sining = getSining(lunarDate, monthZhu.zhi)
-  const dayun = getDaYun({
+  const minggong = await getMingGong(lunarDate, monthZhu, hourZhi)
+  const taiyuan = await getTaiYuanGeneral(monthZhu)
+  const taixi = await getPureGanZhiHe(dayZhu)
+  const bianxing = await getPureGanZhiHe(hourZhu)
+  const sining = await getSining(lunarDate, monthZhu.zhi)
+  const dayun = await getDaYun({
     yearGan,
     monthZhu,
     lunarDate,

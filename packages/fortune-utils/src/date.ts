@@ -1,7 +1,12 @@
 import dayjs from 'dayjs'
+import Decimal from 'decimal.js'
 import { LUNAR_INFO } from './data/lunar-years'
 import { getCurrentLoc, getLocation } from './utils/map'
 import { toChineseNum } from './utils/number-to-chinese'
+import localforage from 'localforage'
+
+Decimal.set({ precision: 10, rounding: Decimal.ROUND_HALF_UP })
+
 /** 四季 */
 export type SeasonName = NameConst<typeof SEASON_NAME>
 export const SEASON_NAME = ['春', '夏', '秋', '冬'] as const
@@ -116,9 +121,16 @@ export const getEquationOfTime = (date: Date): number => {
   const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24))
 
   // 计算太阳角度（弧度），81是春分前的天数
-  const B = (2 * Math.PI * (dayOfYear - 81)) / 365
-  // 时差方程：使用傅里叶级数近似
-  return 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B)
+  const B = new Decimal(dayOfYear - 81)
+    .div(365)
+    .times(2 * Math.PI)
+    .toNumber()
+
+  return new Decimal(9.87)
+    .times(Math.sin(2 * B))
+    .sub(new Decimal(7.53).times(Math.cos(B)))
+    .sub(new Decimal(1.5).times(Math.sin(B)))
+    .toNumber()
 }
 
 /** 计算真太阳时 */
@@ -320,7 +332,7 @@ export const getJulianDay = (date: Date): number => {
   const y = date.getFullYear()
   const m = date.getMonth() + 1
   const d = date.getDate()
-  const h = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600
+  const h = new Decimal(date.getHours()).plus(new Decimal(date.getMinutes()).div(60)).plus(new Decimal(date.getSeconds()).div(3600))
 
   let jd = 0
   let yy = y
@@ -334,32 +346,32 @@ export const getJulianDay = (date: Date): number => {
   const a = Math.floor(yy / 100)
   const b = 2 - a + Math.floor(a / 4)
 
-  jd = Math.floor(365.25 * (yy + 4716)) + Math.floor(30.6001 * (mm + 1)) + d + b - 1524.5 + h / 24
+  jd = Math.floor(365.25 * (yy + 4716)) + Math.floor(30.6001 * (mm + 1)) + d + b - 1524.5 + h.div(24).toNumber()
   return jd
 }
 
 /** 查找指定黄经度数对应的儒略日 */
 export const findSolarTermJD = (targetLongitude: number, startJD: number, endJD: number): number => {
-  const precision = 0.0001 // 精度：约8秒
-  let low = startJD
-  let high = endJD
+  const precision = 0.0001
+  let low = new Decimal(startJD)
+  let high = new Decimal(endJD)
+  let safetyCounter = 0 // 防止无限循环
 
-  while (high - low > precision) {
-    const mid = (low + high) / 2
-    const longitude = getSolarLongitude(mid)
+  while (high.minus(low).gt(precision) && safetyCounter++ < 50) {
+    const mid = low.plus(high).div(2)
+    const longitude = getSolarLongitude(mid.toNumber())
 
-    if (Math.abs(longitude - targetLongitude) < precision) {
-      return mid
+    const currentDiff = new Decimal(longitude).minus(targetLongitude).mod(360)
+    if (currentDiff.abs().lte(precision)) {
+      return mid.toNumber()
     }
 
-    if ((longitude - targetLongitude + 360) % 360 < 180) {
-      high = mid
-    } else {
-      low = mid
-    }
+    // 修正方向判断逻辑
+    const adjustedDiff = currentDiff.add(360).mod(360)
+    adjustedDiff.lt(180) ? (high = mid) : (low = mid)
   }
 
-  return (low + high) / 2
+  return low.plus(high).div(2).toNumber()
 }
 
 /** 儒略日转公历日期 */
@@ -395,41 +407,26 @@ export interface SolarTerm {
   lunarDate: LunarDate
 }
 
-/** 获取某月某天前后的节气 */
-export const getSolarTerms = (date: Date): [SolarTerm, SolarTerm] => {
-  const jd = getJulianDay(date)
-  const longitude = getSolarLongitude(jd)
-
-  // 修正索引计算：大寒对应索引23
-  const currentTermIndex = (Math.floor(longitude / 15) + 3) % 24
-  const nextTermIndex = (currentTermIndex + 1) % 24
-
-  // 计算这两个节气的准确黄经
-  // 需要减去偏移量对应的度数
-  const currentTermLongitude = ((currentTermIndex - 3 + 24) % 24) * 15
-  const nextTermLongitude = ((nextTermIndex - 3 + 24) % 24) * 15
-
-  // 计算准确时间，扩大搜索范围
-  const currentTermJD = findSolarTermJD(currentTermLongitude, jd - 20, jd)
-  const nextTermJD = findSolarTermJD(nextTermLongitude, currentTermJD, currentTermJD + 20)
-
-  // 转换为日期
-  const currentTermDate = fromJulianDay(currentTermJD)
-  const nextTermDate = fromJulianDay(nextTermJD)
-
-  return [
-    { name: SOLAR_TERM[currentTermIndex], lunarDate: solarToLunar(currentTermDate) },
-    { name: SOLAR_TERM[nextTermIndex], lunarDate: solarToLunar(nextTermDate) },
-  ]
-}
-
 /** 获取指定年份的24节气 */
 const yearSolarTermsMap = new Map<number, SolarTerm[]>()
-export const getYearSolarTerms = (year: number): SolarTerm[] => {
-  if (yearSolarTermsMap.has(year)) {
-    return yearSolarTermsMap.get(year)!
+
+// 配置 localforage
+localforage.config({
+  name: 'solar-terms-cache',
+  storeName: 'solar_terms',
+  description: '节气数据缓存',
+})
+
+export const getYearSolarTerms = async (year: number): Promise<SolarTerm[]> => {
+  // 优先从缓存读取
+  try {
+    const cached = await localforage.getItem<SolarTerm[]>(`year_${year}`)
+    if (cached) return cached
+  } catch (err) {
+    console.error('本地存储读取失败', err)
   }
 
+  // 缓存未命中则计算
   const solarTerms: SolarTerm[] = []
 
   // 节气估算月份表 (立春到大寒对应的公历月份)
@@ -470,5 +467,54 @@ export const getYearSolarTerms = (year: number): SolarTerm[] => {
   const sortedSolarTerms = solarTerms.sort((a, b) => a.lunarDate.solarDate.getTime() - b.lunarDate.solarDate.getTime())
   yearSolarTermsMap.set(year, sortedSolarTerms)
 
+  // 存储到缓存（永久有效）
+  try {
+    await localforage.setItem(`year_${year}`, sortedSolarTerms)
+    yearSolarTermsMap.set(year, sortedSolarTerms)
+  } catch (err) {
+    console.error('本地存储失败', err)
+  }
+
   return sortedSolarTerms
+}
+
+/** 获取某月某天前后的节气 */
+export const getPrevAndNextSolarTerm = async (date: Date): Promise<[SolarTerm, SolarTerm]> => {
+  const year = date.getFullYear()
+  // 获取前年、当年、后年的节气（处理跨年边界情况）
+  const [prevYearTerms, currentYearTerms, nextYearTerms] = await Promise.all([
+    getYearSolarTerms(year - 1),
+    getYearSolarTerms(year),
+    getYearSolarTerms(year + 1),
+  ])
+
+  // 合并并排序所有相关节气（保留三年数据确保覆盖所有情况）
+  const allTerms = [...prevYearTerms, ...currentYearTerms, ...nextYearTerms].sort((a, b) => a.lunarDate.solarDate.getTime() - b.lunarDate.solarDate.getTime())
+
+  const targetTime = date.getTime()
+  let prevTerm = allTerms[0]
+  let nextTerm = allTerms[allTerms.length - 1]
+
+  // 优化查找逻辑：从后往前找第一个小于目标时间的节气
+  for (let i = allTerms.length - 1; i >= 0; i--) {
+    const termTime = allTerms[i].lunarDate.solarDate.getTime()
+
+    if (termTime <= targetTime) {
+      prevTerm = allTerms[i]
+      nextTerm = allTerms[i + 1] || allTerms[0] // 处理最后节气的情况
+      break
+    }
+  }
+
+  // 特殊处理年初情况（可能属于前一年的节气）
+  if (date.getMonth() < 2) {
+    // 1-3月需要检查前一年
+    const firstTermOfYear = currentYearTerms[0]
+    if (targetTime < firstTermOfYear.lunarDate.solarDate.getTime()) {
+      prevTerm = prevYearTerms[prevYearTerms.length - 1]
+      nextTerm = firstTermOfYear
+    }
+  }
+
+  return [prevTerm, nextTerm]
 }
